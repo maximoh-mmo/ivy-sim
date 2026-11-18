@@ -5,7 +5,7 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
-#include "ivy_generator.h"
+#include "ivy_generator/ivy_generator.h"
 
 using namespace godot;
 

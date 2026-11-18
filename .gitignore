@@ -3,8 +3,10 @@
 .godot/
 
 # Ignore library files but not the gdextension file
-/bin/**
-!project/bin/*.gdextension
+/bin/
+/project/bin/*/
+!/project/bin/*.gdextension
+!/project/bin/*.gdextension.uid
 
 # Ignore scons database
 .sconsign*.dblite
@@ -28,6 +30,9 @@ compile_commands.json
 *.dblite
 *.pdb
 *.lib
+*.dll
+*.dylib
+*.wasm
 *.config
 *.creator
 *.creator.user
