@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "godot_cpp/classes/ref_counted.hpp"
 #include "godot_cpp/classes/wrapped.hpp"
@@ -6,15 +6,15 @@
 
 using namespace godot;
 
-class ExampleClass : public RefCounted {
-	GDCLASS(ExampleClass, RefCounted)
+class IvyGenerator : public RefCounted {
+	GDCLASS(IvyGenerator, RefCounted)
 
 protected:
 	static void _bind_methods();
 
 public:
-	ExampleClass() = default;
-	~ExampleClass() override = default;
+	IvyGenerator() = default;
+	~IvyGenerator() override = default;
 
 	void print_type(const Variant &p_variant) const;
 };
