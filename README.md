@@ -1,56 +1,83 @@
-# godot-cpp template
-This repository serves as a quickstart template for GDExtension development with Godot 4.0+.
+# Ivy Sim
 
-## Contents
-* Preconfigured source files for C++ development of the GDExtension ([src/](./src/))
-* An empty Godot project in [project/](./project), to test the GDExtension
-* godot-cpp as a submodule (`godot-cpp/`)
-* GitHub Issues template ([.github/ISSUE_TEMPLATE.yml](./.github/ISSUE_TEMPLATE.yml))
-* GitHub CI/CD workflows to publish your library packages when creating a release ([.github/workflows/builds.yml](./.github/workflows/builds.yml))
-* An SConstruct file with various functions, such as boilerplate for [Adding documentation](https://docs.godotengine.org/en/stable/tutorials/scripting/cpp/gdextension_docs_system.html)
+A procedural ivy generation C++ GDExtension for Godot 4.
 
-## Usage - Template
+> [!NOTE]
+> This project is an active **work in progress**. It is being developed as a high-performance procedural ivy generation tool for use in an upcoming game project.
 
-To use this template, log in to GitHub and click the green "Use this template" button at the top of the repository page. This will let you create a copy of this repository with a clean git history.
+---
 
-To get started with your new GDExtension, do the following:
+## Overview
 
-* clone your repository to your local computer
-* initialize the godot-cpp git submodule via `git submodule update --init`
-* change the name of the compiled library file inside the [SConstruct](./SConstruct) file by modifying the `libname` string.
-  * change the paths of the to be loaded library name inside the [project/bin/example.gdextension](./project/bin/example.gdextension) file, by replacing `EXTENSION-NAME` with the name you chose for `libname`.
-* change the `entry_symbol` string inside [project/bin/example.gdextension](./project/bin/example.gdextension) file.
-  * rename the `example_library_init` function in [src/register_types.cpp](./src/register_types.cpp) to the same name you chose for `entry_symbol`.
-* change the name of the `project/bin/example.gdextension` file
+**Ivy Sim** (`ivysim`) provides C++ accelerated algorithms for simulating natural plant and ivy growth over 3D geometry in Godot. It is designed to simulate realistic climbing, branching, adhesion to surfaces, and surface attraction mapping.
 
-Now, you can build the project with the following command:
+### Current Features & Components
 
-```shell
-scons
+* **Deterministic RNG (`src/random/`):** Seeded, reproducible pseudo-random number generator powered by the **PCG32** algorithm, supporting integer ranges, uniform booleans, and floating-point distributions.
+* **Planar Surface Geometry (`src/environment/`):** `IvyWall` representation supporting world-to-local and local-to-world coordinate transformations, dynamic normal calculations, bounding checks, and tolerance-based surface testing.
+* **Surface & Attraction Sampling (`src/environment/`):** `IvyPixelSampler` and `IvySurfaceSampler` supporting bilinear interpolation, UV coordinate wrapping, and Godot `Image` format loading (L8, RGB8, RGBA8) for attraction guidance maps.
+* **Modular Simulation Architecture:** Domain-focused architecture structured into `environment/`, `growth/`, `random/`, `registration/`, and `settings/`.
+* **Standalone Unit Test Suite (`tests/`):** Cross-platform standalone test runner verifying math, RNG sequences, coordinate transformations, and sampling behavior.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+* **Godot 4.x** (targeting 4.3+ GDExtension baseline)
+* **C++17 compiler** (MSVC on Windows, GCC or Clang on Linux/macOS)
+* **Python 3.x** and **SCons** (`pip install scons`)
+
+### Cloning & Building
+
+1. Clone the repository with submodules:
+   ```shell
+   git clone --recursive https://github.com/maximoh-mmo/ivy-sim.git
+   cd ivy-sim
+   ```
+   *(If already cloned without submodules, run `git submodule update --init --recursive`)*
+
+2. Build the GDExtension library:
+   ```shell
+   scons
+   ```
+   This compiles the extension and places the compiled library into `project/bin/<platform>/`.
+
+3. Run the standalone unit tests:
+   ```shell
+   scons -f SConstruct.tests
+   ./bin/ivy_tests
+   ```
+
+4. Open the Godot test project:
+   Launch the Godot editor, import the `project/` folder, and run the main scene to test GDExtension initialization.
+
+---
+
+## Project Structure
+
+```text
+ivy-sim/
+├── doc_classes/       # GDExtension XML documentation
+├── godot-cpp/         # Godot C++ bindings submodule
+├── project/           # Godot project to test and run the extension
+│   ├── bin/           # GDExtension config and compiled binaries
+│   └── example.tscn   # Test scene
+├── src/               # C++ extension source code
+│   ├── environment/   # Surface geometry, walls, and attraction samplers
+│   ├── growth/        # Ivy growth solvers and simulation points
+│   ├── ivy_generator/ # Core IvyGenerator class
+│   ├── random/        # Deterministic PCG32 random number generator
+│   ├── registration/  # GDExtension initialization and type registration
+│   └── settings/      # Simulation parameters and configuration
+├── tests/             # Standalone C++ unit tests
+├── SConstruct         # Main extension build script
+└── SConstruct.tests   # Test suite build script
 ```
 
-If the build command worked, you can test it with the [project](./project) project. Import it into Godot, open it, and launch the main scene. You should see it print the following line in the console:
+---
 
-```
-Type: 24
-```
+## License
 
-### Configuring an IDE
-You can develop your own extension with any text editor and by invoking scons on the command line, but if you want to work with an IDE (Integrated Development Environment), you can use a compilation database file called `compile_commands.json`. Most IDEs should automatically identify this file, and self-configure appropriately.
-To generate the database file, you can run one of the following commands in the project root directory:
-```shell
-# Generate compile_commands.json while compiling
-scons compiledb=yes
-
-# Generate compile_commands.json without compiling
-scons compiledb=yes compile_commands.json
-```
-
-## Usage - Actions
-
-This repository comes with continuous integration (CI) through a GitHub action that tests building the GDExtension.
-It triggers automatically for each pushed change. You can find and edit it in [builds.yml](.github/workflows/ci.yml).
-
-There is also a workflow ([make_build.yml](.github/workflows/make_build.yml)) that builds the GDExtension for all supported platforms that you can use to create releases.
-You can trigger this workflow manually from the `Actions` tab on GitHub.
-After it is complete, you can find the file `godot-cpp-template.zip` in the `Artifacts` section of the workflow run.
+This project is licensed under the MIT License - see [LICENSE.md](LICENSE.md) for details.
