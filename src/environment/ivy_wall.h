@@ -15,14 +15,13 @@ struct IvyWall {
     float height = 0.0f;
     Vector2 uv_scale = Vector2(1.0f, 1.0f);
     Vector2 uv_offset = Vector2(0.0f, 0.0f);
-    Vector3 normal = Vector3(0.0f, 0.0f, 1.0f);
 
-    Vector2 world_to_local(Vector3 world_position) const;
-    Vector3 local_to_world(Vector2 local_position) const;
-    Vector2 local_to_uv(Vector2 local_position) const;
+    Vector2 world_to_local(const Vector3& world_position) const;
+    Vector3 local_to_world(const Vector2& local_position) const;
+    Vector2 local_to_uv(const Vector2& local_position) const;
     Vector3 get_normal() const;
-    bool contains_local_point(Vector2 local_position) const;
-    bool is_on_surface(Vector3 world_position, float tolerance = 0.01f) const;
+    bool contains_local_point(const Vector2& local_position) const;
+    bool is_on_surface(const Vector3& world_position, float tolerance = 0.01f) const;
 };
 
 } // namespace godot
