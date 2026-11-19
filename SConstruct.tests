@@ -1,20 +1,45 @@
 #!/usr/bin/env python
+import os
+import glob
 
 env = Environment(tools=["default"])
 
 if env["PLATFORM"] == "win32":
-    env.Append(CCFLAGS=["/EHsc"])
+    env.Append(CCFLAGS=["/EHsc", "/std:c++17", "/Zc:__cplusplus"])
+else:
+    env.Append(CCFLAGS=["-std=c++17"])
 
-env.Append(CPPPATH=["src"])
+env.Append(CPPPATH=[
+    "src",
+    "godot-cpp/include",
+    "godot-cpp/gen/include",
+])
+
+godot_cpp_bin = "godot-cpp/bin"
+if os.path.isdir(godot_cpp_bin):
+    env.Append(LIBPATH=[godot_cpp_bin])
+    if env["PLATFORM"] == "win32":
+        libs = glob.glob(os.path.join(godot_cpp_bin, "*.lib"))
+        if libs:
+            libname = os.path.splitext(os.path.basename(libs[0]))[0]
+            env.Append(LIBS=[libname])
+    else:
+        libs = glob.glob(os.path.join(godot_cpp_bin, "libgodot-cpp*.a"))
+        if libs:
+            libfile = os.path.basename(libs[0])
+            libname = libfile[3:-2] if libfile.startswith("lib") and libfile.endswith(".a") else os.path.splitext(libfile)[0]
+            env.Append(LIBS=[libname])
 
 sources = [
     "tests/test_main.cpp",
     "tests/ivy_random_tests.cpp",
+    "tests/ivy_wall_tests.cpp",
     "src/random/ivy_random.cpp",
+    "src/environment/ivy_wall.cpp",
 ]
 
 test_program = env.Program(
-    target="bin/ivy_random_tests",
+    target="bin/ivy_tests",
     source=sources,
 )
 
