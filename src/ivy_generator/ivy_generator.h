@@ -1,4 +1,11 @@
-﻿#pragma once
+/*
+ * Copyright (c) 2026 Max Heinze. All rights reserved.
+ *
+ * Licensed for non-commercial use with attribution only.
+ * Commercial use is strictly prohibited.
+ */
+
+#pragma once
 
 #include "godot_cpp/classes/ref_counted.hpp"
 #include "random/ivy_random.h"

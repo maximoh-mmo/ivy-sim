@@ -78,6 +78,8 @@ ivy-sim/
 
 ---
 
-## License
+## License & Copyright
 
-This project is licensed under the MIT License - see [LICENSE.md](LICENSE.md) for details.
+Copyright (c) 2026 Max Heinze. All rights reserved.
+
+This project and its source code are licensed for **non-commercial use with attribution only**. Commercial use is strictly prohibited.

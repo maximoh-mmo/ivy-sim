@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Max Heinze. All rights reserved.
+ *
+ * Licensed for non-commercial use with attribution only.
+ * Commercial use is strictly prohibited.
+ */
+
 #include "ivy_surface_sampler.h"
 #include "ivy_pixel_sampler.h"
 #include <cstdint>

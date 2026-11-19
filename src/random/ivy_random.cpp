@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Max Heinze. All rights reserved.
+ *
+ * Licensed for non-commercial use with attribution only.
+ * Commercial use is strictly prohibited.
+ */
+
 #include "ivy_random.h"
 
 IvyRandom::IvyRandom(int32_t seed, uint64_t stream) {
