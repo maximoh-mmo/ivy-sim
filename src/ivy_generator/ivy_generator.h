@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-#include "godot_cpp/classes/node.hpp"
+#include "godot_cpp/classes/ref_counted.hpp"
 #include "random/ivy_random.h"
 
 using namespace godot;
 
-class IvyGenerator : public Node {
-	GDCLASS(IvyGenerator, Node)
+class IvyGenerator : public RefCounted {
+	GDCLASS(IvyGenerator, RefCounted)
 
 protected:
 	static void _bind_methods();
