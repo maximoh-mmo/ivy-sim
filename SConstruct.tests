@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+
+env = Environment(tools=["default"])
+
+if env["PLATFORM"] == "win32":
+    env.Append(CCFLAGS=["/EHsc"])
+
+env.Append(CPPPATH=["src"])
+
+sources = [
+    "tests/test_main.cpp",
+    "tests/ivy_random_tests.cpp",
+    "src/random/ivy_random.cpp",
+]
+
+test_program = env.Program(
+    target="bin/ivy_random_tests",
+    source=sources,
+)
+
+Default(test_program)
