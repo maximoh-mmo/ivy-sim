@@ -1,20 +1,32 @@
 ﻿#pragma once
 
-#include "godot_cpp/classes/ref_counted.hpp"
-#include "godot_cpp/classes/wrapped.hpp"
-#include "godot_cpp/variant/variant.hpp"
+#include "godot_cpp/classes/node.hpp"
+#include "random/ivy_random.h"
 
 using namespace godot;
 
-class IvyGenerator : public RefCounted {
-	GDCLASS(IvyGenerator, RefCounted)
+class IvyGenerator : public Node {
+	GDCLASS(IvyGenerator, Node)
 
 protected:
 	static void _bind_methods();
 
 public:
-	IvyGenerator() = default;
+	IvyGenerator(const int32_t seed = 42);
 	~IvyGenerator() override = default;
 
-	void print_type(const Variant &p_variant) const;
+	void generate();
+	void set_seed(const int32_t seed);
+
+private:
+	int32_t m_seed;
+	IvyRandom m_random;
+
+
+	// Test cases for the IvyGenerator class
+	void test_cases();
+	void random_test();
+	void random_int_test();
+	void random_bool_test();
+	void random_float_test();
 };
