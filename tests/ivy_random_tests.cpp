@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_random_tests.cpp
+ * @brief Implementation of IvyRandom test assertions and test runner execution.
+ */
+
 #include "ivy_random_tests.h"
 #include "../src/random/ivy_random.h"
 

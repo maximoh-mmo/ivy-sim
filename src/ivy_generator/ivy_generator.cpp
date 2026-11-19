@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_generator.cpp
+ * @brief Implementation of IvyGenerator RefCounted lifecycle and generation routines.
+ */
+
 #include "ivy_generator.h"
 #include <sstream>
 

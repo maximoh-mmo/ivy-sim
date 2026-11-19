@@ -5,4 +5,9 @@
  * Commercial use is strictly prohibited.
  */
 
+#pragma once
 
+/**
+ * @file growth_solver.h
+ * @brief Algorithmic solver for ivy branch propagation and adhesion.
+ */

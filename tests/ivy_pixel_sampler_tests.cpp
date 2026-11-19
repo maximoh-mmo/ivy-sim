@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_pixel_sampler_tests.cpp
+ * @brief Implementation of IvyPixelSampler unit test cases and bilinear verification.
+ */
+
 #include "ivy_pixel_sampler_tests.h"
 #include "../src/environment/ivy_pixel_sampler.h"
 

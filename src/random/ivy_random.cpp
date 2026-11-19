@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_random.cpp
+ * @brief Implementation of IvyRandom PCG32 deterministic generator functions.
+ */
+
 #include "ivy_random.h"
 
 IvyRandom::IvyRandom(int32_t seed, uint64_t stream) {

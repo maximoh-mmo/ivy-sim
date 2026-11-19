@@ -5,3 +5,9 @@
  * Commercial use is strictly prohibited.
  */
 
+#pragma once
+
+/**
+ * @file ivy_settings.h
+ * @brief Simulation configuration parameters and growth constraints.
+ */

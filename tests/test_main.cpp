@@ -5,10 +5,19 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file test_main.cpp
+ * @brief Standalone test runner entry point for all ivy-sim C++ unit tests.
+ */
+
 #include "ivy_random_tests.h"
 #include "ivy_wall_tests.h"
 #include "ivy_pixel_sampler_tests.h"
 
+/**
+ * @brief Main test runner function executing IvyRandom, IvyWall, and IvyPixelSampler test suites.
+ * @return int 0 if all test suites pass, 1 if any failure occurs.
+ */
 int main() {
     IvyRandomTests random_tests;
     IvyWallTests wall_tests;

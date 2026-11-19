@@ -5,4 +5,9 @@
  * Commercial use is strictly prohibited.
  */
 
+#pragma once
 
+/**
+ * @file ivy_point.h
+ * @brief Representation of an individual ivy node/particle in the simulation graph.
+ */

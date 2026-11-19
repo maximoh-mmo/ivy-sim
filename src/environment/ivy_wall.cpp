@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_wall.cpp
+ * @brief Implementation of IvyWall planar transformations and surface calculations.
+ */
+
 #include "ivy_wall.h"
 
 #include <cmath>

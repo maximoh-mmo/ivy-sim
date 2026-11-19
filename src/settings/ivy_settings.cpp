@@ -5,3 +5,9 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_settings.cpp
+ * @brief Implementation of ivy configuration parameters.
+ */
+
+#include "ivy_settings.h"

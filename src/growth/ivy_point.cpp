@@ -5,3 +5,9 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_point.cpp
+ * @brief Implementation of ivy node operations.
+ */
+
+#include "ivy_point.h"

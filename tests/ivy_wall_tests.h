@@ -7,8 +7,21 @@
 
 #pragma once
 
+/**
+ * @file ivy_wall_tests.h
+ * @brief Unit test suite for IvyWall surface representation.
+ */
+
+/**
+ * @class IvyWallTests
+ * @brief Test suite verifying transformations, normal calculation, and surface testing of IvyWall.
+ */
 class IvyWallTests {
 public:
+    /**
+     * @brief Executes all IvyWall unit tests and prints results to stdout.
+     * @return bool True if all tests passed.
+     */
     bool run_all();
 
 private:
@@ -19,11 +32,17 @@ private:
     bool test_get_normal();
     bool test_contains_local_point();
     bool test_local_to_uv();
-	bool test_uv_scale_offset();
-	bool test_is_on_surface();
+    bool test_uv_scale_offset();
+    bool test_is_on_surface();
 
-	bool expect(bool condition, const char* message);
+    /**
+     * @brief Assertion helper tracking passed and failed test count.
+     * @param condition Condition expression to evaluate.
+     * @param message Failure explanation printed when condition is false.
+     * @return bool True if condition was true.
+     */
+    bool expect(bool condition, const char* message);
 
-    int m_passed = 0;
-    int m_failed = 0;
+    int m_passed = 0; /**< Count of passing assertions. */
+    int m_failed = 0; /**< Count of failing assertions. */
 };

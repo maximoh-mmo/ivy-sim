@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_wall_tests.cpp
+ * @brief Implementation of IvyWall planar test cases and assertions.
+ */
+
 #include "ivy_wall_tests.h"
 #include "../src/environment/ivy_wall.h"
 

@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_pixel_sampler.cpp
+ * @brief Implementation of IvyPixelSampler bilinear interpolation and UV wrapping.
+ */
+
 #include "ivy_pixel_sampler.h"
 #include <cmath>
 

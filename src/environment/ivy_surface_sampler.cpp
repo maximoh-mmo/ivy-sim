@@ -5,6 +5,11 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file ivy_surface_sampler.cpp
+ * @brief Implementation of IvySurfaceSampler Godot Image loader and sampler adapter.
+ */
+
 #include "ivy_surface_sampler.h"
 #include "ivy_pixel_sampler.h"
 #include <cstdint>

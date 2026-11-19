@@ -5,4 +5,9 @@
  * Commercial use is strictly prohibited.
  */
 
+/**
+ * @file growth_solver.cpp
+ * @brief Implementation of ivy branch propagation algorithms.
+ */
 
+#include "growth_solver.h"
