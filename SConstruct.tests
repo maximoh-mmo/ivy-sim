@@ -34,8 +34,10 @@ sources = [
     "tests/test_main.cpp",
     "tests/ivy_random_tests.cpp",
     "tests/ivy_wall_tests.cpp",
+    "tests/ivy_pixel_sampler_tests.cpp",
     "src/random/ivy_random.cpp",
     "src/environment/ivy_wall.cpp",
+    "src/environment/ivy_pixel_sampler.cpp"
 ]
 
 test_program = env.Program(
