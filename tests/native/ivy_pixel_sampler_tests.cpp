@@ -11,10 +11,12 @@
  */
 
 #include "ivy_pixel_sampler_tests.h"
-#include "../src/environment/ivy_pixel_sampler.h"
+#include "environment/ivy_pixel_sampler.h"
 
 #include <iostream>
 #include <cmath>
+
+namespace ivygenerator {
 
 bool IvyPixelSamplerTests::run_test(const char* name, bool (IvyPixelSamplerTests::*test)()) {
     std::cout << "Running: " << name << '\n';
@@ -166,3 +168,6 @@ bool IvyPixelSamplerTests::run_all() {
 
     return m_failed == 0;
 }
+
+} // namespace ivygenerator
+

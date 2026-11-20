@@ -13,6 +13,7 @@
 #include <godot_cpp/godot.hpp>
 
 #include "ivy_generator/ivy_generator.h"
+#include "godot/ivy_surface_sampler_test_bridge.h"
 
 /**
  * @file register_types.cpp
@@ -25,7 +26,8 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
-	GDREGISTER_CLASS(IvyGenerator);
+	GDREGISTER_CLASS(ivygenerator::IvyGenerator);
+	GDREGISTER_CLASS(ivygenerator::IvySurfaceSamplerTestBridge);
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

@@ -16,6 +16,8 @@
  * @class IvyWallTests
  * @brief Test suite verifying transformations, normal calculation, and surface testing of IvyWall.
  */
+namespace ivygenerator {
+
 class IvyWallTests {
 public:
     /**
@@ -46,3 +48,5 @@ private:
     int m_passed = 0; /**< Count of passing assertions. */
     int m_failed = 0; /**< Count of failing assertions. */
 };
+
+} // namespace ivygenerator

@@ -1,0 +1,13 @@
+# Copyright (c) 2026 Max Heinze. All rights reserved.
+#
+# Licensed for non-commercial use with attribution only.
+# Commercial use is strictly prohibited.
+
+extends SceneTree
+
+const SamplerTests = preload("res://tests/godot/sampler_tests.gd")
+
+func _initialize() -> void:
+	var tests = SamplerTests.new()
+	tests.sampler_test()
+	quit()

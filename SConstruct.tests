@@ -16,6 +16,7 @@ else:
 
 env.Append(CPPPATH=[
     "src",
+    "tests/native",
     "godot-cpp/include",
     "godot-cpp/gen/include",
 ])
@@ -36,10 +37,10 @@ if os.path.isdir(godot_cpp_bin):
             env.Append(LIBS=[libname])
 
 sources = [
-    "tests/test_main.cpp",
-    "tests/ivy_random_tests.cpp",
-    "tests/ivy_wall_tests.cpp",
-    "tests/ivy_pixel_sampler_tests.cpp",
+    "tests/native/test_main.cpp",
+    "tests/native/ivy_random_tests.cpp",
+    "tests/native/ivy_wall_tests.cpp",
+    "tests/native/ivy_pixel_sampler_tests.cpp",
     "src/random/ivy_random.cpp",
     "src/environment/ivy_wall.cpp",
     "src/environment/ivy_pixel_sampler.cpp"

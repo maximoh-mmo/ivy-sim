@@ -11,11 +11,12 @@
  */
 
 #include "ivy_wall_tests.h"
-#include "../src/environment/ivy_wall.h"
+#include "environment/ivy_wall.h"
 
 #include <iostream>
 #include <cmath>
 
+namespace ivygenerator {
 using namespace godot;
 
 bool IvyWallTests::expect(bool condition, const char* message) {
@@ -243,3 +244,6 @@ bool IvyWallTests::run_all() {
 
     return m_failed == 0;
 }
+
+} // namespace ivygenerator
+

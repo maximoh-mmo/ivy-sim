@@ -71,7 +71,9 @@ ivy-sim/
 │   ├── random/        # Deterministic PCG32 random number generator
 │   ├── registration/  # GDExtension initialization and type registration
 │   └── settings/      # Simulation parameters and configuration
-├── tests/             # Standalone C++ unit tests
+├── tests/             # Test suites
+│   ├── godot/         # Godot integration test bridges
+│   └── native/        # Standalone native C++ unit tests
 ├── SConstruct         # Main extension build script
 └── SConstruct.tests   # Test suite build script
 ```

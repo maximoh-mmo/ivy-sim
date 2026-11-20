@@ -14,6 +14,8 @@
 #include "ivy_wall_tests.h"
 #include "ivy_pixel_sampler_tests.h"
 
+using namespace ivygenerator;
+
 /**
  * @brief Main test runner function executing IvyRandom, IvyWall, and IvyPixelSampler test suites.
  * @return int 0 if all test suites pass, 1 if any failure occurs.

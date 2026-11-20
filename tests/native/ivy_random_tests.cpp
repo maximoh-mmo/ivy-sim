@@ -11,11 +11,13 @@
  */
 
 #include "ivy_random_tests.h"
-#include "../src/random/ivy_random.h"
+#include "random/ivy_random.h"
 
 #include <iostream>
 #include <cstdint>
 #include <cmath>
+
+namespace ivygenerator {
 
 bool IvyRandomTests::expect(bool condition, const char* message) {
     if (!condition) {
@@ -234,3 +236,6 @@ bool IvyRandomTests::test_random_float_range() {
 
     return true;
 }
+
+} // namespace ivygenerator
+

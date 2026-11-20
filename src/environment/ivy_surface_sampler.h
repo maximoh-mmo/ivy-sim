@@ -15,8 +15,6 @@
  * @brief Godot Image adapter for surface attraction sampling.
  */
 
-using namespace godot;
-
 /**
  * @class IvySurfaceSampler
  * @brief Godot-aware wrapper for loading engine Image resources into IvyPixelSampler.
@@ -24,28 +22,32 @@ using namespace godot;
  * Supports grayscale (L8), RGB8, and RGBA8 formats, validating that multi-channel
  * images represent uniform grayscale attraction values.
  */
-class IvySurfaceSampler {
-public:
-    /**
-     * @brief Parses a Godot Image resource into floating-point scalar attraction data.
-     * @param image Ref<Image> pointing to a valid Godot Image.
-     * @return bool True if the image was successfully validated and loaded.
-     */
-    bool load_image(const Ref<Image>& image);
 
-    /**
-     * @brief Samples the underlying pixel sampler using a Godot Vector2 UV coordinate.
-     * @param uv UV coordinate vector.
-     * @return float Interpolated attraction scalar.
-     */
-    float sample_attraction(const Vector2& uv) const;
+namespace ivygenerator {
 
-    /**
-     * @brief Checks if the underlying pixel sampler contains valid data.
-     * @return bool True if ready for sampling.
-     */
-    bool is_valid() const;
+    class IvySurfaceSampler {
+    public:
+        /**
+         * @brief Parses a Godot Image resource into floating-point scalar attraction data.
+         * @param image Ref<Image> pointing to a valid Godot Image.
+         * @return bool True if the image was successfully validated and loaded.
+         */
+        bool load_image(const godot::Ref<godot::Image>& image);
 
-private:
-    IvyPixelSampler m_pixel_sampler; /**< Internal standalone pixel sampler instance. */
-};
+        /**
+         * @brief Samples the underlying pixel sampler using a Godot Vector2 UV coordinate.
+         * @param uv UV coordinate vector.
+         * @return float Interpolated attraction scalar.
+         */
+        float sample_attraction(const godot::Vector2& uv) const;
+
+        /**
+         * @brief Checks if the underlying pixel sampler contains valid data.
+         * @return bool True if ready for sampling.
+         */
+        bool is_valid() const;
+
+    private:
+        IvyPixelSampler m_pixel_sampler; /**< Internal standalone pixel sampler instance. */
+    };
+} // namespace ivygenerator

@@ -14,6 +14,8 @@
  * @brief Standalone bilinear texture sampler for attraction mapping.
  */
 
+namespace ivygenerator {
+
 /**
  * @class IvyPixelSampler
  * @brief Independent 2D scalar field sampler supporting bilinear interpolation and UV wrapping.
@@ -74,3 +76,5 @@ private:
      */
     float get_pixel(int x, int y) const;
 };
+
+} // namespace ivygenerator

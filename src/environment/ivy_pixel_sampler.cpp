@@ -13,6 +13,8 @@
 #include "ivy_pixel_sampler.h"
 #include <cmath>
 
+namespace ivygenerator {
+
 float IvyPixelSampler::wrap_uv(float value) const {
     return value - std::floor(value);
 }
@@ -84,3 +86,5 @@ bool IvyPixelSampler::is_valid() const {
            m_attraction_data.size() ==
                static_cast<size_t>(m_width) * static_cast<size_t>(m_height);
 }
+
+} // namespace ivygenerator
