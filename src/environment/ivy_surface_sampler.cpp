@@ -15,66 +15,66 @@
 #include <cstdint>
 
 namespace ivygenerator {
-    using namespace godot;
+using namespace godot;
 
-    bool IvySurfaceSampler::load_image(const Ref<Image>& image) {
-        if (image.is_null() || image->is_empty()) {
-            return false;
-        }
+bool IvySurfaceSampler::load_image(const Ref<Image> &image) {
+	if (image.is_null() || image->is_empty()) {
+		return false;
+	}
 
-        const int width = image->get_width();
-        const int height = image->get_height();
+	const int width = image->get_width();
+	const int height = image->get_height();
 
-        if (width <= 0 || height <= 0) {
-            return false;
-        }
+	if (width <= 0 || height <= 0) {
+		return false;
+	}
 
-        const Image::Format format = image->get_format();
+	const Image::Format format = image->get_format();
 
-        if (format != Image::FORMAT_RGB8 && format != Image::FORMAT_RGBA8 && format != Image::FORMAT_L8) {
-            return false;
-        }
+	if (format != Image::FORMAT_RGB8 && format != Image::FORMAT_RGBA8 && format != Image::FORMAT_L8) {
+		return false;
+	}
 
-        const int channels = (format == Image::FORMAT_RGBA8) ? 4 : (format == Image::FORMAT_RGB8) ? 3 : 1;
+	const int channels = (format == Image::FORMAT_RGBA8) ? 4 : (format == Image::FORMAT_RGB8) ? 3
+																							  : 1;
 
-        const PackedByteArray pixels = image->get_data();
+	const PackedByteArray pixels = image->get_data();
 
-        const int64_t pixel_count = static_cast<int64_t>(width) * height;
-    
-        const int64_t expected_size = static_cast<int64_t>(width) * height * channels;
+	const int64_t pixel_count = static_cast<int64_t>(width) * height;
 
-        if (pixels.size() != expected_size) {
-            return false;
-        }
+	const int64_t expected_size = static_cast<int64_t>(width) * height * channels;
 
-        std::vector<float> data;
+	if (pixels.size() != expected_size) {
+		return false;
+	}
 
-        data.reserve(pixel_count);
+	std::vector<float> data;
 
-        for (int64_t i = 0; i < pixel_count; ++i) {
-            const uint8_t r = pixels[i * channels];
-            if (channels > 1) {
-                const uint8_t g = pixels[i * channels + 1];
-                const uint8_t b = pixels[i * channels + 2];
-                if (r != g || g != b) {
-                    return false;
-                }
-            }
-            data.push_back(static_cast<float>(r) / 255.0f);
-        }
+	data.reserve(pixel_count);
 
-        return m_pixel_sampler.set_pixel_data(
-            data,
-            width,
-            height
-        );
-    }
+	for (int64_t i = 0; i < pixel_count; ++i) {
+		const uint8_t r = pixels[i * channels];
+		if (channels > 1) {
+			const uint8_t g = pixels[i * channels + 1];
+			const uint8_t b = pixels[i * channels + 2];
+			if (r != g || g != b) {
+				return false;
+			}
+		}
+		data.push_back(static_cast<float>(r) / 255.0f);
+	}
 
-    float IvySurfaceSampler::sample_attraction(const Vector2& uv) const {
-        return m_pixel_sampler.sample_attraction(uv.x, uv.y);
-    }
+	return m_pixel_sampler.set_pixel_data(
+			data,
+			width,
+			height);
+}
 
-    bool IvySurfaceSampler::is_valid() const {
-        return m_pixel_sampler.is_valid();
-    }
+float IvySurfaceSampler::sample_attraction(const Vector2 &uv) const {
+	return m_pixel_sampler.sample_attraction(uv.x, uv.y);
+}
+
+bool IvySurfaceSampler::is_valid() const {
+	return m_pixel_sampler.is_valid();
+}
 } // namespace ivygenerator

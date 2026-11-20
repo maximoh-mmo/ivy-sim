@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Format All Files",
+            "type": "shell",
+            "command": "python",
+            "args": ["format_code.py"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build GDExtension",
+            "type": "shell",
+            "command": "scons",
+            "args": [
+                "platform=windows",
+                "target=template_debug",
+                "-j8"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Build GDExtension Release",
+            "type": "shell",
+            "command": "scons",
+            "args": [
+                "platform=windows",
+                "target=template_release",
+                "-j8"
+            ],
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Run Unit Tests",
+            "type": "shell",
+            "command": "scons -f SConstruct.tests && .\\bin\\ivy_tests.exe",
+            "group": "test",
+            "problemMatcher": "$gcc"
+        }
+    ]
+}

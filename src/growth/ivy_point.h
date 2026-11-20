@@ -23,9 +23,9 @@ namespace ivygenerator {
  * @brief Represents a single point/node along an ivy vine within the growth graph.
  */
 struct IvyPoint {
-    godot::Vector3 position = godot::Vector3(); /**< 3D world-space position of the ivy point. */
-    float thickness = 0.0f;                     /**< Vine radius/thickness at this point. */
-    int32_t parent_index = -1;                  /**< Index of the parent point in the graph (-1 for root nodes). */
+	godot::Vector3 position = godot::Vector3(); /**< 3D world-space position of the ivy point. */
+	float thickness = 0.0f; /**< Vine radius/thickness at this point. */
+	int32_t parent_index = -1; /**< Index of the parent point in the graph (-1 for root nodes). */
 };
 
 } // namespace ivygenerator

@@ -24,66 +24,66 @@
  */
 
 namespace ivygenerator {
-	
-	class IvyGenerator : public godot::RefCounted {
-		GDCLASS(IvyGenerator, godot::RefCounted)
 
-	protected:
-		/**
-		 * @brief Godot ClassDB method registration hook.
-		 */
-		static void _bind_methods();
+class IvyGenerator : public godot::RefCounted {
+	GDCLASS(IvyGenerator, godot::RefCounted)
 
-	public:
-		/**
-		 * @brief Constructs an IvyGenerator with a deterministic starting seed.
-		 * @param seed Initial RNG seed (default: 42).
-		 */
-		IvyGenerator(const int32_t seed = 42);
+protected:
+	/**
+	 * @brief Godot ClassDB method registration hook.
+	 */
+	static void _bind_methods();
 
-		/**
-		 * @brief Default virtual destructor.
-		 */
-		~IvyGenerator() override = default;
+public:
+	/**
+	 * @brief Constructs an IvyGenerator with a deterministic starting seed.
+	 * @param seed Initial RNG seed (default: 42).
+	 */
+	IvyGenerator(const int32_t seed = 42);
 
-		/**
-		 * @brief Executes the ivy generation routine and test suite verification.
-		 */
-		void generate();
+	/**
+	 * @brief Default virtual destructor.
+	 */
+	~IvyGenerator() override = default;
 
-		/**
-		 * @brief Updates the RNG seed used for procedural ivy generation.
-		 * @param seed New random seed value.
-		 */
-		void set_seed(const int32_t seed);
+	/**
+	 * @brief Executes the ivy generation routine and test suite verification.
+	 */
+	void generate();
 
-	private:
-		int32_t m_seed;      /**< Current simulation seed. */
-		IvyRandom m_random;  /**< Deterministic PCG32 random generator instance. */
+	/**
+	 * @brief Updates the RNG seed used for procedural ivy generation.
+	 * @param seed New random seed value.
+	 */
+	void set_seed(const int32_t seed);
 
-		/**
-		 * @brief Internal verification routines demonstrating generator output.
-		 */
-		void test_cases();
+private:
+	int32_t m_seed; /**< Current simulation seed. */
+	IvyRandom m_random; /**< Deterministic PCG32 random generator instance. */
 
-		/**
-		 * @brief Verifies raw 32-bit unsigned integer generation.
-		 */
-		void random_test();
+	/**
+	 * @brief Internal verification routines demonstrating generator output.
+	 */
+	void test_cases();
 
-		/**
-		 * @brief Verifies bounded integer generation.
-		 */
-		void random_int_test();
+	/**
+	 * @brief Verifies raw 32-bit unsigned integer generation.
+	 */
+	void random_test();
 
-		/**
-		 * @brief Verifies boolean probability distribution.
-		 */
-		void random_bool_test();
+	/**
+	 * @brief Verifies bounded integer generation.
+	 */
+	void random_int_test();
 
-		/**
-		 * @brief Verifies canonical and bounded float generation.
-		 */
-		void random_float_test();
-	};
+	/**
+	 * @brief Verifies boolean probability distribution.
+	 */
+	void random_bool_test();
+
+	/**
+	 * @brief Verifies canonical and bounded float generation.
+	 */
+	void random_float_test();
+};
 } // namespace ivygenerator

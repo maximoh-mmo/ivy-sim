@@ -22,25 +22,25 @@ namespace ivygenerator {
  */
 class IvyGrowthGraphTests {
 private:
-    int tests_passed = 0; /**< Counter of passed test assertions. */
-    int tests_failed = 0; /**< Counter of failed test assertions. */
+	int tests_passed = 0; /**< Counter of passed test assertions. */
+	int tests_failed = 0; /**< Counter of failed test assertions. */
 
-    void expect(const char* test_name, bool condition);
+	void expect(const char *test_name, bool condition);
 
-    void test_add_root();
-    void test_add_child();
-    void test_branching();
-    void test_invalid_negative_parent();
-    void test_invalid_parent_index();
-    void test_get_point();
-    void test_clear();
+	void test_add_root();
+	void test_add_child();
+	void test_branching();
+	void test_invalid_negative_parent();
+	void test_invalid_parent_index();
+	void test_get_point();
+	void test_clear();
 
 public:
-    /**
-     * @brief Executes all IvyGrowthGraph unit tests and prints the summary.
-     * @return bool True if all tests passed, false if any test failed.
-     */
-    bool run_all();
+	/**
+	 * @brief Executes all IvyGrowthGraph unit tests and prints the summary.
+	 * @return bool True if all tests passed, false if any test failed.
+	 */
+	bool run_all();
 };
 
 } // namespace ivygenerator

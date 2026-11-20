@@ -17,32 +17,29 @@ namespace ivygenerator {
 using namespace godot;
 
 void IvySurfaceSamplerTestBridge::_bind_methods() {
-    ClassDB::bind_method(
-        D_METHOD("load_image", "image"),
-        &IvySurfaceSamplerTestBridge::load_image
-    );
+	ClassDB::bind_method(
+			D_METHOD("load_image", "image"),
+			&IvySurfaceSamplerTestBridge::load_image);
 
-    ClassDB::bind_method(
-        D_METHOD("sample_attraction", "uv"),
-        &IvySurfaceSamplerTestBridge::sample_attraction
-    );
+	ClassDB::bind_method(
+			D_METHOD("sample_attraction", "uv"),
+			&IvySurfaceSamplerTestBridge::sample_attraction);
 
-    ClassDB::bind_method(
-        D_METHOD("is_valid"),
-        &IvySurfaceSamplerTestBridge::is_valid
-    );
+	ClassDB::bind_method(
+			D_METHOD("is_valid"),
+			&IvySurfaceSamplerTestBridge::is_valid);
 }
 
-bool IvySurfaceSamplerTestBridge::load_image(const Ref<Image>& image) {
-    return m_sampler.load_image(image);
+bool IvySurfaceSamplerTestBridge::load_image(const Ref<Image> &image) {
+	return m_sampler.load_image(image);
 }
 
-float IvySurfaceSamplerTestBridge::sample_attraction(const Vector2& uv) const {
-    return m_sampler.sample_attraction(uv);
+float IvySurfaceSamplerTestBridge::sample_attraction(const Vector2 &uv) const {
+	return m_sampler.sample_attraction(uv);
 }
 
 bool IvySurfaceSamplerTestBridge::is_valid() const {
-    return m_sampler.is_valid();
+	return m_sampler.is_valid();
 }
 
 } // namespace ivygenerator

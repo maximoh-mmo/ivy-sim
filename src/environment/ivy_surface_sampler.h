@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <godot_cpp/classes/image.hpp>
 #include "ivy_pixel_sampler.h"
+#include <godot_cpp/classes/image.hpp>
 
 /**
  * @file ivy_surface_sampler.h
@@ -25,29 +25,29 @@
 
 namespace ivygenerator {
 
-    class IvySurfaceSampler {
-    public:
-        /**
-         * @brief Parses a Godot Image resource into floating-point scalar attraction data.
-         * @param image Ref<Image> pointing to a valid Godot Image.
-         * @return bool True if the image was successfully validated and loaded.
-         */
-        bool load_image(const godot::Ref<godot::Image>& image);
+class IvySurfaceSampler {
+public:
+	/**
+	 * @brief Parses a Godot Image resource into floating-point scalar attraction data.
+	 * @param image Ref<Image> pointing to a valid Godot Image.
+	 * @return bool True if the image was successfully validated and loaded.
+	 */
+	bool load_image(const godot::Ref<godot::Image> &image);
 
-        /**
-         * @brief Samples the underlying pixel sampler using a Godot Vector2 UV coordinate.
-         * @param uv UV coordinate vector.
-         * @return float Interpolated attraction scalar.
-         */
-        float sample_attraction(const godot::Vector2& uv) const;
+	/**
+	 * @brief Samples the underlying pixel sampler using a Godot Vector2 UV coordinate.
+	 * @param uv UV coordinate vector.
+	 * @return float Interpolated attraction scalar.
+	 */
+	float sample_attraction(const godot::Vector2 &uv) const;
 
-        /**
-         * @brief Checks if the underlying pixel sampler contains valid data.
-         * @return bool True if ready for sampling.
-         */
-        bool is_valid() const;
+	/**
+	 * @brief Checks if the underlying pixel sampler contains valid data.
+	 * @return bool True if ready for sampling.
+	 */
+	bool is_valid() const;
 
-    private:
-        IvyPixelSampler m_pixel_sampler; /**< Internal standalone pixel sampler instance. */
-    };
+private:
+	IvyPixelSampler m_pixel_sampler; /**< Internal standalone pixel sampler instance. */
+};
 } // namespace ivygenerator
