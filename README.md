@@ -16,6 +16,7 @@ A procedural ivy generation C++ GDExtension for Godot 4.
 * **Deterministic RNG (`src/random/`):** Seeded, reproducible pseudo-random number generator powered by the **PCG32** algorithm, supporting integer ranges, uniform booleans, and floating-point distributions.
 * **Planar Surface Geometry (`src/environment/`):** `IvyWall` representation supporting world-to-local and local-to-world coordinate transformations, dynamic normal calculations, bounding checks, and tolerance-based surface testing.
 * **Surface & Attraction Sampling (`src/environment/`):** `IvyPixelSampler` and `IvySurfaceSampler` supporting bilinear interpolation, UV coordinate wrapping, and Godot `Image` format loading (L8, RGB8, RGBA8) for attraction guidance maps.
+* **Hierarchical Growth Graph (`src/growth/`):** `IvyGrowthGraph` and `IvyPoint` managing sequential node storage, parent-child vine hierarchies, root and branch validation, and tree indexing.
 * **Modular Simulation Architecture:** Domain-focused architecture structured into `environment/`, `growth/`, `random/`, `registration/`, and `settings/`.
 * **Standalone Unit Test Suite (`tests/`):** Cross-platform standalone test runner verifying math, RNG sequences, coordinate transformations, and sampling behavior.
 

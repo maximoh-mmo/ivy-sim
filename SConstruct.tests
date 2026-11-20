@@ -41,9 +41,12 @@ sources = [
     "tests/native/ivy_random_tests.cpp",
     "tests/native/ivy_wall_tests.cpp",
     "tests/native/ivy_pixel_sampler_tests.cpp",
+    "tests/native/ivy_growth_graph_tests.cpp",
     "src/random/ivy_random.cpp",
     "src/environment/ivy_wall.cpp",
-    "src/environment/ivy_pixel_sampler.cpp"
+    "src/environment/ivy_pixel_sampler.cpp",
+    "src/growth/ivy_point.cpp",
+    "src/growth/ivy_growth_graph.cpp"
 ]
 
 test_program = env.Program(
