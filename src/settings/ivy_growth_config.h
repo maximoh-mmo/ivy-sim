@@ -25,6 +25,9 @@ struct IvyGrowthConfig {
 	float momentum_weight = 1.0f; /**< Weight given to continuing in the previous growth direction. */
 	float upward_weight = 0.5f; /**< Weight given to upward phototropism/gravitropism (+Y axis). */
 	float random_weight = 0.0f; /**< Weight given to random lateral wandering/deviation. */
+	float attraction_weight = 0.5f; /**< Weight given to ascending the attraction scalar gradient. */
+	float contour_weight = 0.5f; /**< Weight given to following attraction contour/isolines. */
+	float gradient_epsilon = 0.01f; /**< Finite difference step in UV space for numerical gradient evaluation (> 0). */
 };
 
 } // namespace ivygenerator

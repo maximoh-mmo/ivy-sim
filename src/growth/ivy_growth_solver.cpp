@@ -51,16 +51,17 @@ bool IvyGrowthSolver::initialize(
 
 	if (!std::isfinite(config.momentum_weight) || config.momentum_weight < 0.0f ||
 			!std::isfinite(config.upward_weight) || config.upward_weight < 0.0f ||
-			!std::isfinite(config.random_weight) || config.random_weight < 0.0f) {
-		return false;
-	}
-	if (!std::isfinite(config.momentum_weight) || config.momentum_weight < 0.0f ||
-			!std::isfinite(config.upward_weight) || config.upward_weight < 0.0f ||
-			!std::isfinite(config.random_weight) || config.random_weight < 0.0f) {
+			!std::isfinite(config.random_weight) || config.random_weight < 0.0f ||
+			!std::isfinite(config.attraction_weight) || config.attraction_weight < 0.0f ||
+			!std::isfinite(config.contour_weight) || config.contour_weight < 0.0f) {
 		return false;
 	}
 
 	if (config.momentum_weight + config.upward_weight <= 0.0f) {
+		return false;
+	}
+
+	if (!std::isfinite(config.gradient_epsilon) || config.gradient_epsilon <= 0.0f) {
 		return false;
 	}
 
@@ -166,26 +167,94 @@ bool IvyGrowthSolver::compute_previous_local_direction(
 	return true;
 }
 
-bool IvyGrowthSolver::compute_step_local_direction(const IvyPoint &tip, const godot::Vector2 &tip_local, godot::Vector2 &out_direction) {
+bool IvyGrowthSolver::compute_step_local_direction(
+		const IvyPoint &tip,
+		const godot::Vector2 &tip_local,
+		godot::Vector2 &out_direction) {
 	godot::Vector2 previous_direction;
 	if (!compute_previous_local_direction(tip, tip_local, previous_direction)) {
 		return false;
 	}
+
 	const godot::Vector2 upward_direction(0.0f, 1.0f);
+
 	godot::Vector2 combined =
 			previous_direction * m_config->momentum_weight +
 			upward_direction * m_config->upward_weight;
+
+	const godot::Vector2 reference_direction =
+			(combined.length_squared() > 0.000001f) ? combined : previous_direction;
+
+	godot::Vector2 attraction_direction;
+	godot::Vector2 contour_direction;
+	compute_attraction_vectors(
+			tip_local,
+			reference_direction,
+			attraction_direction,
+			contour_direction);
+
+	combined += attraction_direction * m_config->attraction_weight +
+			contour_direction * m_config->contour_weight;
+
 	if (m_config->random_weight > 0.0f) {
 		constexpr float half_pi = 1.57079632679f;
 		const float random_angle = m_random->random_float(-half_pi, half_pi);
 		const godot::Vector2 random_direction = previous_direction.rotated(random_angle);
 		combined += random_direction * m_config->random_weight;
 	}
+
 	if (combined.length_squared() <= 0.000001f) {
 		out_direction = previous_direction;
 		return true;
 	}
+
 	out_direction = combined.normalized();
 	return true;
 }
+
+void IvyGrowthSolver::compute_attraction_vectors(
+		const godot::Vector2 &tip_local,
+		const godot::Vector2 &reference_direction,
+		godot::Vector2 &out_attraction_direction,
+		godot::Vector2 &out_contour_direction) const {
+	out_attraction_direction = godot::Vector2();
+	out_contour_direction = godot::Vector2();
+
+	if (m_config->attraction_weight <= 0.0f && m_config->contour_weight <= 0.0f) {
+		return;
+	}
+
+	const godot::Vector2 uv = m_wall->local_to_uv(tip_local);
+	const float eps = m_config->gradient_epsilon;
+
+	const float attr_u_plus =
+			m_surface_sampler->sample_attraction(godot::Vector2(uv.x + eps, uv.y));
+	const float attr_u_minus =
+			m_surface_sampler->sample_attraction(godot::Vector2(uv.x - eps, uv.y));
+	const float attr_v_plus =
+			m_surface_sampler->sample_attraction(godot::Vector2(uv.x, uv.y + eps));
+	const float attr_v_minus =
+			m_surface_sampler->sample_attraction(godot::Vector2(uv.x, uv.y - eps));
+
+	const float inv_two_eps = 1.0f / (2.0f * eps);
+	const float grad_u = (attr_u_plus - attr_u_minus) * inv_two_eps;
+	const float grad_v = (attr_v_plus - attr_v_minus) * inv_two_eps;
+
+	const godot::Vector2 physical_gradient(
+			grad_u * (m_wall->uv_scale.x / m_wall->width),
+			grad_v * (m_wall->uv_scale.y / m_wall->height));
+
+	if (physical_gradient.length_squared() <= 0.00000001f) {
+		return;
+	}
+
+	out_attraction_direction = physical_gradient.normalized();
+
+	const godot::Vector2 tangent(
+			-out_attraction_direction.y,
+			out_attraction_direction.x);
+	out_contour_direction =
+			(tangent.dot(reference_direction) >= 0.0f) ? tangent : -tangent;
+}
+
 } //namespace ivygenerator

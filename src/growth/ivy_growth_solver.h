@@ -93,6 +93,19 @@ private:
 			const IvyPoint &tip,
 			const godot::Vector2 &tip_local,
 			godot::Vector2 &out_direction);
+
+	/**
+	 * @brief Computes normalized surface attraction gradient and contour tangent vectors.
+	 * @param tip_local Current 2D local position of the active tip.
+	 * @param reference_direction Base heading used to resolve contour tangent orientation.
+	 * @param out_attraction_direction Output unit vector pointing along gradient ascent.
+	 * @param out_contour_direction Output unit vector pointing along contour tangent.
+	 */
+	void compute_attraction_vectors(
+			const godot::Vector2 &tip_local,
+			const godot::Vector2 &reference_direction,
+			godot::Vector2 &out_attraction_direction,
+			godot::Vector2 &out_contour_direction) const;
 };
 
 } // namespace ivygenerator

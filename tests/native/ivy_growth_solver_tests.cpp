@@ -202,6 +202,24 @@ bool IvyGrowthSolverTests::test_reject_invalid_config() {
 				"Negative random_weight should be rejected")) {
 		return false;
 	}
+	IvyGrowthConfig negative_attraction;
+	negative_attraction.attraction_weight = -0.5f;
+	if (!expect(!solver.initialize(wall, sampler, negative_attraction, rng, starts),
+				"Negative attraction_weight should be rejected")) {
+		return false;
+	}
+	IvyGrowthConfig negative_contour;
+	negative_contour.contour_weight = -0.5f;
+	if (!expect(!solver.initialize(wall, sampler, negative_contour, rng, starts),
+				"Negative contour_weight should be rejected")) {
+		return false;
+	}
+	IvyGrowthConfig zero_epsilon;
+	zero_epsilon.gradient_epsilon = 0.0f;
+	if (!expect(!solver.initialize(wall, sampler, zero_epsilon, rng, starts),
+				"Zero gradient_epsilon should be rejected")) {
+		return false;
+	}
 	IvyGrowthConfig zero_directional_weights;
 	zero_directional_weights.momentum_weight = 0.0f;
 	zero_directional_weights.upward_weight = 0.0f;
@@ -503,6 +521,88 @@ bool IvyGrowthSolverTests::test_step_momentum_and_upward_tropism() {
 			"Upward tropism should bend tilted growth direction back toward +Y");
 }
 
+bool IvyGrowthSolverTests::test_step_attraction_gradient() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	// Gradient map: left is 0.0, right is 1.0 (u increases from 0 to 1).
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 0.0f, 1.0f }, 2, 1);
+
+	const std::vector<Vector3> starts = { Vector3(5.0f, 0.0f, 0.0f) };
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.momentum_weight = 0.0f;
+	config.upward_weight = 1.0f;
+	config.random_weight = 0.0f;
+	config.contour_weight = 0.0f;
+	config.attraction_weight = 1.0f;
+
+	IvyRandom rng(42);
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
+				"Initialization with attraction weight should succeed")) {
+		return false;
+	}
+
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step should advance")) {
+		return false;
+	}
+
+	const IvyPoint *p1 = solver.get_graph().get_point(1);
+	if (!expect(p1 != nullptr, "First child should exist")) {
+		return false;
+	}
+
+	// Because attraction is higher toward +X (right), gradient pulls tip to the right (+X > 5.0)
+	return expect(p1->position.x > 5.001f,
+				   "Attraction gradient should steer the vine toward higher attraction values (+X)") &&
+			expect(p1->position.y > 0.001f,
+					"Upward tropism should also advance the vine upward (+Y)");
+}
+
+bool IvyGrowthSolverTests::test_step_contour_following() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	// Vertical gradient: bottom is 0.0, top is 1.0 (gradient points +Y, contours run horizontally along X).
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 0.0f, 1.0f }, 1, 2);
+
+	const std::vector<Vector3> starts = { Vector3(5.0f, 1.0f, 0.0f) };
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.upward_weight = 0.0f;
+	config.random_weight = 0.0f;
+	config.attraction_weight = 0.0f;
+	config.contour_weight = 1.0f;
+	config.momentum_weight = 0.1f;
+
+	IvyRandom rng(42);
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
+				"Initialization with contour weight should succeed")) {
+		return false;
+	}
+
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step should advance")) {
+		return false;
+	}
+
+	const IvyPoint *p1 = solver.get_graph().get_point(1);
+	if (!expect(p1 != nullptr, "First child should exist")) {
+		return false;
+	}
+
+	// Contour tangent is orthogonal to gradient (+Y), so it runs along X (deflecting lateral position away from 5.0).
+	return expect(std::abs(p1->position.x - 5.0f) > 0.001f,
+			"Contour tangent should deflect growth direction along isolines orthogonal to gradient");
+}
+
 bool IvyGrowthSolverTests::run_all() {
 	m_passed = 0;
 	m_failed = 0;
@@ -547,6 +647,12 @@ bool IvyGrowthSolverTests::run_all() {
 
 	run_test("Step momentum and upward tropism",
 			&IvyGrowthSolverTests::test_step_momentum_and_upward_tropism);
+
+	run_test("Step attraction gradient ascent",
+			&IvyGrowthSolverTests::test_step_attraction_gradient);
+
+	run_test("Step contour following",
+			&IvyGrowthSolverTests::test_step_contour_following);
 
 	std::cout << "\n=== Test Summary ===\n";
 	std::cout << "Passed: " << m_passed << '\n';
