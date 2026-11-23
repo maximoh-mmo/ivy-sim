@@ -202,29 +202,65 @@ bool IvyGrowthSolverTests::test_reject_invalid_config() {
 				"Negative random_weight should be rejected")) {
 		return false;
 	}
+
+	IvyGrowthConfig zero_directional_weights;
+	zero_directional_weights.momentum_weight = 0.0f;
+	zero_directional_weights.upward_weight = 0.0f;
+	if (!expect(!solver.initialize(wall, sampler, zero_directional_weights, rng, starts),
+				"Zero total directional weight should be rejected")) {
+		return false;
+	}
+
 	IvyGrowthConfig negative_attraction;
-	negative_attraction.attraction_weight = -0.5f;
+	negative_attraction.attraction_weight = -0.1f;
 	if (!expect(!solver.initialize(wall, sampler, negative_attraction, rng, starts),
 				"Negative attraction_weight should be rejected")) {
 		return false;
 	}
+
 	IvyGrowthConfig negative_contour;
-	negative_contour.contour_weight = -0.5f;
+	negative_contour.contour_weight = -0.1f;
 	if (!expect(!solver.initialize(wall, sampler, negative_contour, rng, starts),
 				"Negative contour_weight should be rejected")) {
 		return false;
 	}
+
 	IvyGrowthConfig zero_epsilon;
 	zero_epsilon.gradient_epsilon = 0.0f;
 	if (!expect(!solver.initialize(wall, sampler, zero_epsilon, rng, starts),
 				"Zero gradient_epsilon should be rejected")) {
 		return false;
 	}
-	IvyGrowthConfig zero_directional_weights;
-	zero_directional_weights.momentum_weight = 0.0f;
-	zero_directional_weights.upward_weight = 0.0f;
-	return expect(!solver.initialize(wall, sampler, zero_directional_weights, rng, starts),
-			"Zero total directional weight should be rejected");
+
+	IvyGrowthConfig invalid_branch_prob;
+	invalid_branch_prob.branch_probability = 1.1f;
+	if (!expect(!solver.initialize(wall, sampler, invalid_branch_prob, rng, starts),
+				"branch_probability > 1.0 should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig invalid_branch_angle;
+	invalid_branch_angle.branch_angle = 0.0f;
+	if (!expect(!solver.initialize(wall, sampler, invalid_branch_angle, rng, starts),
+				"Non-positive branch_angle should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig zero_max_points;
+	zero_max_points.max_points = 0;
+	if (!expect(!solver.initialize(wall, sampler, zero_max_points, rng, starts),
+				"Zero max_points should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig too_few_max_points;
+	too_few_max_points.max_points = 1;
+	const std::vector<Vector3> two_starts = {
+		Vector3(1.0f, 0.0f, 0.0f),
+		Vector3(2.0f, 0.0f, 0.0f)
+	};
+	return expect(!solver.initialize(wall, sampler, too_few_max_points, rng, two_starts),
+			"start_points exceeding max_points should be rejected");
 }
 
 bool IvyGrowthSolverTests::test_reject_invalid_start_points() {
@@ -521,86 +557,254 @@ bool IvyGrowthSolverTests::test_step_momentum_and_upward_tropism() {
 			"Upward tropism should bend tilted growth direction back toward +Y");
 }
 
-bool IvyGrowthSolverTests::test_step_attraction_gradient() {
+bool IvyGrowthSolverTests::test_step_attraction_gradient_steering() {
 	IvyWall wall;
 	wall.width = 10.0f;
 	wall.height = 10.0f;
 
-	// Gradient map: left is 0.0, right is 1.0 (u increases from 0 to 1).
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.momentum_weight = 1.0f;
+	config.upward_weight = 0.0f;
+	config.random_weight = 0.0f;
+	config.attraction_weight = 1.0f;
+	config.contour_weight = 0.0f;
+
+	const std::vector<Vector3> starts = { Vector3(5.0f, 5.0f, 0.0f) };
+
+	// Right column bright (1.0), left column dark (0.0) -> gradient points +X.
+	IvySurfaceSampler right_bright_sampler;
+	right_bright_sampler.set_pixel_data({ 0.0f, 1.0f,
+												0.0f, 1.0f },
+			2, 2);
+
+	IvyRandom rng_right(42);
+	IvyGrowthSolver solver_right;
+	solver_right.initialize(wall, right_bright_sampler, config, rng_right, starts);
+	solver_right.step();
+
+	const IvyPoint *right_tip = solver_right.get_graph().get_point(1);
+	if (!expect(right_tip != nullptr && right_tip->position.x > 5.0f,
+				"Attraction gradient should steer tip toward brighter right side")) {
+		return false;
+	}
+
+	// Left column bright (1.0), right column dark (0.0) -> gradient points -X.
+	IvySurfaceSampler left_bright_sampler;
+	left_bright_sampler.set_pixel_data({ 1.0f, 0.0f,
+											   1.0f, 0.0f },
+			2, 2);
+
+	IvyRandom rng_left(42);
+	IvyGrowthSolver solver_left;
+	solver_left.initialize(wall, left_bright_sampler, config, rng_left, starts);
+	solver_left.step();
+
+	const IvyPoint *left_tip = solver_left.get_graph().get_point(1);
+	return expect(left_tip != nullptr && left_tip->position.x < 5.0f,
+			"Attraction gradient should steer tip toward brighter left side");
+}
+
+bool IvyGrowthSolverTests::test_step_contour_adherence_follows_tangent() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	// Diagonal field: top-left is brightest (1.0), bottom-right is darkest (0.0).
+	// At (0.5, 0.5), gradient points up-left (-1, +1), while the upward-aligned
+	// iso-contour (connecting the two 0.5 pixels) points up-right (+1, +1).
+	IvySurfaceSampler diagonal_sampler;
+	diagonal_sampler.set_pixel_data({ 1.0f, 0.5f,
+											0.5f, 0.0f },
+			2, 2);
+	const std::vector<Vector3> starts = { Vector3(5.0f, 5.0f, 0.0f) };
+
+	// Pure attraction (steers left toward brighter bottom-left).
+	IvyGrowthConfig attract_only;
+	attract_only.step_length = 0.5f;
+	attract_only.momentum_weight = 1.0f;
+	attract_only.upward_weight = 0.5f;
+	attract_only.attraction_weight = 1.0f;
+	attract_only.contour_weight = 0.0f;
+
+	IvyRandom rng_a(42);
+	IvyGrowthSolver solver_attract;
+	solver_attract.initialize(wall, diagonal_sampler, attract_only, rng_a, starts);
+	solver_attract.step();
+
+	// Pure contour adherence (steers right along the upward-right diagonal iso-contour).
+	IvyGrowthConfig contour_only = attract_only;
+	contour_only.attraction_weight = 0.0f;
+	contour_only.contour_weight = 1.0f;
+
+	IvyRandom rng_c(42);
+	IvyGrowthSolver solver_contour;
+	solver_contour.initialize(wall, diagonal_sampler, contour_only, rng_c, starts);
+	solver_contour.step();
+
+	const IvyPoint *tip_attract = solver_attract.get_graph().get_point(1);
+	const IvyPoint *tip_contour = solver_contour.get_graph().get_point(1);
+
+	return expect(tip_attract != nullptr && tip_contour != nullptr,
+				   "Both attraction and contour steps should produce a point") &&
+			expect(tip_attract->position.x < 5.0f,
+					"Attraction-only step should steer toward brighter left side (x < 5.0)") &&
+			expect(tip_contour->position.x > 5.0f,
+					"Contour-only step should follow upward-right contour tangent (x > 5.0)");
+}
+bool IvyGrowthSolverTests::test_step_branching_waits_until_next_iteration() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
 	IvySurfaceSampler sampler;
-	sampler.set_pixel_data({ 0.0f, 1.0f }, 2, 1);
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.momentum_weight = 1.0f;
+	config.upward_weight = 0.0f;
+	config.branch_probability = 1.0f;
+	config.branch_angle = 0.5f;
+
+	IvyRandom rng(42);
+	const std::vector<Vector3> starts = { Vector3(5.0f, 0.0f, 0.0f) };
+
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
+				"Initialization should succeed")) {
+		return false;
+	}
+
+	// Step 1: Root (0) produces main stem (1) and side branch (2), but (2) is not stepped yet.
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 1 should advance") ||
+			!expect(solver.get_graph().get_point_count() == 3,
+					"Step 1 should add main point and branch point without stepping branch yet")) {
+		return false;
+	}
+
+	const IvyPoint *main_1 = solver.get_graph().get_point(1);
+	const IvyPoint *branch_1 = solver.get_graph().get_point(2);
+	if (!expect(main_1 != nullptr && branch_1 != nullptr, "Main and branch points should exist") ||
+			!expect(main_1->parent_index == 0 && branch_1->parent_index == 0,
+					"Main and branch points should share root parent 0") ||
+			!expect(std::abs(main_1->position.x - 5.0f) < 0.0001f,
+					"Main stem should grow straight up") ||
+			!expect(std::abs(branch_1->position.x - 5.0f) > 0.1f,
+					"Side branch should deflect laterally off x = 5.0")) {
+		return false;
+	}
+
+	// Step 2: Disable further branching; both main tip (1) and branch tip (2) advance once.
+	config.branch_probability = 0.0f;
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 2 should advance") ||
+			!expect(solver.get_graph().get_point_count() == 5,
+					"Step 2 should advance both main tip and new branch tip")) {
+		return false;
+	}
+
+	const IvyPoint *main_2 = solver.get_graph().get_point(3);
+	const IvyPoint *branch_2 = solver.get_graph().get_point(4);
+	const float branch_dx_1 = branch_1->position.x - 5.0f;
+	const float branch_dx_2 = branch_2->position.x - branch_1->position.x;
+
+	return expect(main_2 != nullptr && branch_2 != nullptr, "Step 2 tips should exist") &&
+			expect(main_2->parent_index == 1 && branch_2->parent_index == 2,
+					"Step 2 should advance tips 1 and 2 in sequential order") &&
+			expect((branch_dx_1 * branch_dx_2) > 0.0f,
+					"Branch tip should preserve lateral heading on its first step");
+}
+
+bool IvyGrowthSolverTests::test_step_branching_determinism() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.step_length = 0.4f;
+	config.random_weight = 0.3f;
+	config.branch_probability = 0.5f;
+	config.branch_angle = 0.5f;
 
 	const std::vector<Vector3> starts = { Vector3(5.0f, 0.0f, 0.0f) };
 
-	IvyGrowthConfig config;
-	config.step_length = 0.5f;
-	config.momentum_weight = 0.0f;
-	config.upward_weight = 1.0f;
-	config.random_weight = 0.0f;
-	config.contour_weight = 0.0f;
-	config.attraction_weight = 1.0f;
+	IvyRandom rng_a(123);
+	IvyGrowthSolver solver_a;
+	solver_a.initialize(wall, sampler, config, rng_a, starts);
 
-	IvyRandom rng(42);
-	IvyGrowthSolver solver;
-	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
-				"Initialization with attraction weight should succeed")) {
+	IvyRandom rng_b(123);
+	IvyGrowthSolver solver_b;
+	solver_b.initialize(wall, sampler, config, rng_b, starts);
+
+	for (int i = 0; i < 5; ++i) {
+		solver_a.step();
+		solver_b.step();
+	}
+
+	const IvyGrowthGraph &graph_a = solver_a.get_graph();
+	const IvyGrowthGraph &graph_b = solver_b.get_graph();
+	if (!expect(graph_a.get_point_count() == graph_b.get_point_count(),
+				"Identical seeds should produce identical branched point counts")) {
 		return false;
 	}
 
-	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step should advance")) {
-		return false;
+	for (int32_t i = 0; i < graph_a.get_point_count(); ++i) {
+		const IvyPoint *a = graph_a.get_point(i);
+		const IvyPoint *b = graph_b.get_point(i);
+		if (!expect(a->parent_index == b->parent_index &&
+							a->position.is_equal_approx(b->position),
+					"Identical seeds should produce identical branch topology and positions")) {
+			return false;
+		}
 	}
 
-	const IvyPoint *p1 = solver.get_graph().get_point(1);
-	if (!expect(p1 != nullptr, "First child should exist")) {
-		return false;
-	}
-
-	// Because attraction is higher toward +X (right), gradient pulls tip to the right (+X > 5.0)
-	return expect(p1->position.x > 5.001f,
-				   "Attraction gradient should steer the vine toward higher attraction values (+X)") &&
-			expect(p1->position.y > 0.001f,
-					"Upward tropism should also advance the vine upward (+Y)");
+	return true;
 }
 
-bool IvyGrowthSolverTests::test_step_contour_following() {
+bool IvyGrowthSolverTests::test_step_respects_max_points() {
 	IvyWall wall;
 	wall.width = 10.0f;
 	wall.height = 10.0f;
 
-	// Vertical gradient: bottom is 0.0, top is 1.0 (gradient points +Y, contours run horizontally along X).
 	IvySurfaceSampler sampler;
-	sampler.set_pixel_data({ 0.0f, 1.0f }, 1, 2);
-
-	const std::vector<Vector3> starts = { Vector3(5.0f, 1.0f, 0.0f) };
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
 
 	IvyGrowthConfig config;
 	config.step_length = 0.5f;
-	config.upward_weight = 0.0f;
-	config.random_weight = 0.0f;
-	config.attraction_weight = 0.0f;
-	config.contour_weight = 1.0f;
-	config.momentum_weight = 0.1f;
+	config.branch_probability = 1.0f;
+	config.max_points = 4;
 
 	IvyRandom rng(42);
+	const std::vector<Vector3> starts = { Vector3(5.0f, 0.0f, 0.0f) };
+
 	IvyGrowthSolver solver;
 	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
-				"Initialization with contour weight should succeed")) {
+				"Initialization should succeed")) {
 		return false;
 	}
 
-	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step should advance")) {
+	// Step 1: 1 -> 3 points (root 0, main 1, branch 2).
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 1 should advance") ||
+			!expect(solver.get_graph().get_point_count() == 3, "Graph should have 3 points after Step 1") ||
+			!expect(!solver.is_finished(), "Solver should not be finished before reaching max_points")) {
 		return false;
 	}
 
-	const IvyPoint *p1 = solver.get_graph().get_point(1);
-	if (!expect(p1 != nullptr, "First child should exist")) {
+	// Step 2: 3 -> 4 points (hits max_points and stops cleanly).
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 2 should return ADVANCED") ||
+			!expect(solver.get_graph().get_point_count() == 4, "Graph should stop at exactly max_points = 4") ||
+			!expect(solver.is_finished(), "Solver should report finished once max_points is reached")) {
 		return false;
 	}
 
-	// Contour tangent is orthogonal to gradient (+Y), so it runs along X (deflecting lateral position away from 5.0).
-	return expect(std::abs(p1->position.x - 5.0f) > 0.001f,
-			"Contour tangent should deflect growth direction along isolines orthogonal to gradient");
+	// Step 3: already finished.
+	return expect(solver.step() == GrowthStepResult::FINISHED,
+				   "Subsequent step after max_points should return FINISHED") &&
+			expect(solver.get_graph().get_point_count() == 4,
+					"Graph size should remain capped at 4");
 }
 
 bool IvyGrowthSolverTests::run_all() {
@@ -648,11 +852,20 @@ bool IvyGrowthSolverTests::run_all() {
 	run_test("Step momentum and upward tropism",
 			&IvyGrowthSolverTests::test_step_momentum_and_upward_tropism);
 
-	run_test("Step attraction gradient ascent",
-			&IvyGrowthSolverTests::test_step_attraction_gradient);
+	run_test("Step attraction gradient steering",
+			&IvyGrowthSolverTests::test_step_attraction_gradient_steering);
 
-	run_test("Step contour following",
-			&IvyGrowthSolverTests::test_step_contour_following);
+	run_test("Step contour adherence follows tangent",
+			&IvyGrowthSolverTests::test_step_contour_adherence_follows_tangent);
+
+	run_test("Step branching waits until next iteration",
+			&IvyGrowthSolverTests::test_step_branching_waits_until_next_iteration);
+
+	run_test("Step branching determinism",
+			&IvyGrowthSolverTests::test_step_branching_determinism);
+
+	run_test("Step respects max_points",
+			&IvyGrowthSolverTests::test_step_respects_max_points);
 
 	std::cout << "\n=== Test Summary ===\n";
 	std::cout << "Passed: " << m_passed << '\n';

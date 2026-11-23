@@ -43,8 +43,10 @@ private:
 	bool test_step_multiple_roots_sequential();
 	bool test_step_random_wander_determinism();
 	bool test_step_momentum_and_upward_tropism();
-	bool test_step_attraction_gradient();
-	bool test_step_contour_following();
+	bool test_step_attraction_gradient_steering();
+	bool test_step_contour_adherence_follows_tangent();
+	bool test_step_branch_spawning();
+	bool test_step_max_points_termination();
 
 	int m_passed = 0;
 	int m_failed = 0;

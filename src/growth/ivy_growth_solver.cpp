@@ -68,6 +68,26 @@ bool IvyGrowthSolver::initialize(
 	if (start_points.empty()) {
 		return false;
 	}
+
+	if (!std::isfinite(config.branch_probability) ||
+			config.branch_probability < 0.0f || config.branch_probability > 1.0f) {
+		return false;
+	}
+
+	constexpr float half_pi_upper = 1.5707964f;
+	if (!std::isfinite(config.branch_angle) ||
+			config.branch_angle <= 0.0f || config.branch_angle > half_pi_upper) {
+		return false;
+	}
+
+	if (config.max_points <= 0) {
+		return false;
+	}
+
+	if (static_cast<int64_t>(start_points.size()) > config.max_points) {
+		return false;
+	}
+
 	for (const godot::Vector3 &start_point : start_points) {
 		if (!wall.is_on_surface(start_point)) {
 			return false;
@@ -99,40 +119,69 @@ GrowthStepResult IvyGrowthSolver::step() {
 			m_config == nullptr || m_random == nullptr) {
 		return GrowthStepResult::ERROR;
 	}
+
 	if (m_active_tips.empty()) {
 		return GrowthStepResult::FINISHED;
 	}
+
+	if (m_graph.get_point_count() >= m_config->max_points) {
+		m_active_tips.clear();
+		return GrowthStepResult::FINISHED;
+	}
+
 	std::vector<int32_t> next_active_tips;
 	next_active_tips.reserve(m_active_tips.size());
+
 	for (const int32_t tip_index : m_active_tips) {
+		if (m_graph.get_point_count() >= m_config->max_points) {
+			break;
+		}
+
 		const IvyPoint *tip_ptr = m_graph.get_point(tip_index);
 		if (tip_ptr == nullptr) {
 			return GrowthStepResult::ERROR;
 		}
+
 		// Copy by value in case m_graph.add_point() reallocates m_graph's internal vector.
 		const IvyPoint tip = *tip_ptr;
 		const godot::Vector2 current_local = m_wall->world_to_local(tip.position);
+
 		godot::Vector2 direction_local;
 		if (!compute_step_local_direction(tip, current_local, direction_local)) {
 			return GrowthStepResult::ERROR;
 		}
+
 		const godot::Vector2 next_local =
 				current_local + direction_local * m_config->step_length;
+
 		if (!m_wall->contains_local_point(next_local)) {
 			// Tip stepped outside the wall boundary and terminates.
 			continue;
 		}
+
 		IvyPoint next_point;
 		next_point.position = m_wall->local_to_world(next_local);
-		next_point.thickness = tip.thickness;
+		next_point.thickness = m_config->initial_thickness;
 		next_point.parent_index = tip_index;
+
 		const int32_t next_index = m_graph.add_point(next_point);
 		if (next_index < 0) {
 			return GrowthStepResult::ERROR;
 		}
+
 		next_active_tips.push_back(next_index);
+
+		if (!try_spawn_branch(tip_index, current_local, direction_local, next_active_tips)) {
+			return GrowthStepResult::ERROR;
+		}
 	}
-	m_active_tips = std::move(next_active_tips);
+
+	if (m_graph.get_point_count() >= m_config->max_points) {
+		m_active_tips.clear();
+	} else {
+		m_active_tips = std::move(next_active_tips);
+	}
+
 	return GrowthStepResult::ADVANCED;
 }
 
@@ -255,6 +304,47 @@ void IvyGrowthSolver::compute_attraction_vectors(
 			out_attraction_direction.x);
 	out_contour_direction =
 			(tangent.dot(reference_direction) >= 0.0f) ? tangent : -tangent;
+}
+
+bool IvyGrowthSolver::try_spawn_branch(
+		int32_t parent_index,
+		const godot::Vector2 &parent_local,
+		const godot::Vector2 &main_direction_local,
+		std::vector<int32_t> &next_active_tips) {
+	if (m_config->branch_probability <= 0.0f) {
+		return true;
+	}
+
+	if (m_graph.get_point_count() >= m_config->max_points) {
+		return true;
+	}
+
+	if (m_random->random_float() >= m_config->branch_probability) {
+		return true;
+	}
+
+	const float branch_sign = m_random->random_bool() ? 1.0f : -1.0f;
+	const godot::Vector2 branch_direction =
+			main_direction_local.rotated(branch_sign * m_config->branch_angle);
+	const godot::Vector2 branch_local =
+			parent_local + branch_direction * m_config->step_length;
+
+	if (!m_wall->contains_local_point(branch_local)) {
+		return true;
+	}
+
+	IvyPoint branch_point;
+	branch_point.position = m_wall->local_to_world(branch_local);
+	branch_point.thickness = m_config->initial_thickness;
+	branch_point.parent_index = parent_index;
+
+	const int32_t branch_index = m_graph.add_point(branch_point);
+	if (branch_index < 0) {
+		return false;
+	}
+
+	next_active_tips.push_back(branch_index);
+	return true;
 }
 
 } //namespace ivygenerator

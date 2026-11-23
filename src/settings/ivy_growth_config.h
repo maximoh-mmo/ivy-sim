@@ -28,6 +28,9 @@ struct IvyGrowthConfig {
 	float attraction_weight = 0.5f; /**< Weight given to ascending the attraction scalar gradient. */
 	float contour_weight = 0.5f; /**< Weight given to following attraction contour/isolines. */
 	float gradient_epsilon = 0.01f; /**< Finite difference step in UV space for numerical gradient evaluation (> 0). */
+	float branch_probability = 0.0f; /**< Per-step probability [0, 1] of spawning a side branch. */
+	float branch_angle = 0.5235988f; /**< Branch deflection angle in radians (~30 degrees). */
+	int32_t max_points = 10000; /**< Maximum total points allowed in the growth graph. */
 };
 
 } // namespace ivygenerator

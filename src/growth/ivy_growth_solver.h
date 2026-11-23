@@ -106,6 +106,20 @@ private:
 			const godot::Vector2 &reference_direction,
 			godot::Vector2 &out_attraction_direction,
 			godot::Vector2 &out_contour_direction) const;
+
+	/**
+	 * @brief Attempts to spawn a secondary branch tip from a parent point.
+	 * @param parent_index Index of the parent IvyPoint in the graph.
+	 * @param parent_local 2D local position on the wall of the parent tip.
+	 * @param main_direction_local Forward growth direction vector of the main branch.
+	 * @param next_active_tips Vector accumulating active tip indices for the subsequent step.
+	 * @return True if branch handling completed successfully, false on allocation/graph failure.
+	 */
+	bool try_spawn_branch(
+			int32_t parent_index,
+			const godot::Vector2 &parent_local,
+			const godot::Vector2 &main_direction_local,
+			std::vector<int32_t> &next_active_tips);
 };
 
 } // namespace ivygenerator
