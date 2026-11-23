@@ -36,6 +36,7 @@ private:
 	bool test_local_to_uv();
 	bool test_uv_scale_offset();
 	bool test_is_on_surface();
+	bool test_is_valid();
 
 	/**
 	 * @brief Assertion helper tracking passed and failed test count.

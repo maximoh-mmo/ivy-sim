@@ -84,6 +84,12 @@ struct IvyWall {
 	 * @return bool True if the point lies within tolerance of the surface.
 	 */
 	bool is_on_surface(const godot::Vector3 &world_position, float tolerance = 0.01f) const;
+
+	/**
+	 * @brief Validates that dimensions, coordinates, and axes are finite, positive, normalized, and orthogonal.
+	 * @return bool True if the wall configuration is geometrically valid.
+	 */
+	bool is_valid() const;
 };
 
 } // namespace ivygenerator

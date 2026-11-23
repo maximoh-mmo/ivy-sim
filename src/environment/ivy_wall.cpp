@@ -53,6 +53,9 @@ bool IvyWall::contains_local_point(const Vector2 &local_position) const {
 }
 
 bool IvyWall::is_on_surface(const Vector3 &world_position, float tolerance) const {
+	if (!is_valid() || !world_position.is_finite() || !std::isfinite(tolerance) || tolerance < 0.0f) {
+		return false;
+	}
 	const Vector3 diff = world_position - origin;
 	const Vector3 n = get_normal();
 	const float perp_distance = std::abs(diff.dot(n));
@@ -63,5 +66,26 @@ bool IvyWall::is_on_surface(const Vector3 &world_position, float tolerance) cons
 	const Vector2 local = world_to_local(world_position);
 	return local.x >= -tolerance && local.x <= width + tolerance &&
 			local.y >= -tolerance && local.y <= height + tolerance;
+}
+
+bool IvyWall::is_valid() const {
+	if (!origin.is_finite() || !axis_u.is_finite() || !axis_v.is_finite() ||
+			!uv_scale.is_finite() || !uv_offset.is_finite() ||
+			!std::isfinite(width) || !std::isfinite(height)) {
+		return false;
+	}
+	if (width <= 0.0f || height <= 0.0f) {
+		return false;
+	}
+	if (uv_scale.x == 0.0f || uv_scale.y == 0.0f) {
+		return false;
+	}
+	if (!axis_u.is_normalized() || !axis_v.is_normalized()) {
+		return false;
+	}
+	if (std::abs(axis_u.dot(axis_v)) > 0.0001f) {
+		return false;
+	}
+	return true;
 }
 } // namespace ivygenerator

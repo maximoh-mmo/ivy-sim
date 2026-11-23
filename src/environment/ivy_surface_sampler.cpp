@@ -77,4 +77,8 @@ float IvySurfaceSampler::sample_attraction(const Vector2 &uv) const {
 bool IvySurfaceSampler::is_valid() const {
 	return m_pixel_sampler.is_valid();
 }
+
+bool IvySurfaceSampler::set_pixel_data(const std::vector<float> &data, int width, int height) {
+	return m_pixel_sampler.set_pixel_data(data, width, height);
+}
 } // namespace ivygenerator

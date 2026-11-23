@@ -227,11 +227,45 @@ bool IvyWallTests::run_all() {
 	run("Local to UV", &IvyWallTests::test_local_to_uv);
 	run("UV scale and offset", &IvyWallTests::test_uv_scale_offset);
 	run("Is on surface", &IvyWallTests::test_is_on_surface);
+	run("Is valid", &IvyWallTests::test_is_valid);
 
 	std::cout << "\nPassed: " << m_passed
 			  << "\nFailed: " << m_failed << '\n';
 
 	return m_failed == 0;
+}
+
+bool IvyWallTests::test_is_valid() {
+	IvyWall wall;
+	if (!expect(!wall.is_valid(), "Default wall with zero dimensions should be invalid")) {
+		return false;
+	}
+	wall.width = 10.0f;
+	wall.height = 5.0f;
+	if (!expect(wall.is_valid(), "Configured orthogonal unit-axis wall should be valid")) {
+		return false;
+	}
+	IvyWall negative_width = wall;
+	negative_width.width = -1.0f;
+	if (!expect(!negative_width.is_valid(), "Negative width should be invalid")) {
+		return false;
+	}
+	IvyWall unnormalized_axis = wall;
+	unnormalized_axis.axis_u = Vector3(2.0f, 0.0f, 0.0f);
+	if (!expect(!unnormalized_axis.is_valid(), "Non-unit axis_u should be invalid")) {
+		return false;
+	}
+	IvyWall non_orthogonal = wall;
+	non_orthogonal.axis_v = Vector3(1.0f, 0.0f, 0.0f);
+	if (!expect(!non_orthogonal.is_valid(), "Parallel axes should be invalid")) {
+		return false;
+	}
+	IvyWall zero_uv_scale = wall;
+	zero_uv_scale.uv_scale = Vector2(0.0f, 1.0f);
+	if (!expect(!zero_uv_scale.is_valid(), "Zero UV scale should be invalid")) {
+		return false;
+	}
+	return true;
 }
 
 } // namespace ivygenerator

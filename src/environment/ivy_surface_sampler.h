@@ -47,6 +47,18 @@ public:
 	 */
 	bool is_valid() const;
 
+	/**
+	 * @brief Loads raw scalar float pixel data directly into the underlying sampler.
+	 * @param data Vector of scalar float values in [0.0, 1.0].
+	 * @param width Image width in pixels (> 0).
+	 * @param height Image height in pixels (> 0).
+	 * @return bool True if data was accepted.
+	 */
+	bool set_pixel_data(
+			const std::vector<float> &data,
+			int width,
+			int height);
+
 private:
 	IvyPixelSampler m_pixel_sampler; /**< Internal standalone pixel sampler instance. */
 };
