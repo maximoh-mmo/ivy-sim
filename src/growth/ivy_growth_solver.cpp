@@ -45,6 +45,15 @@ bool IvyGrowthSolver::initialize(
 		return false;
 	}
 
+	if (!std::isfinite(config.thickness_growth_per_step) || config.thickness_growth_per_step < 0.0f ||
+			!std::isfinite(config.max_thickness) || config.max_thickness < config.initial_thickness ||
+			!std::isfinite(config.wither_rate_per_step) || config.wither_rate_per_step < 0.0f ||
+			!std::isfinite(config.min_withered_thickness) ||
+			config.min_withered_thickness <= 0.0f ||
+			config.min_withered_thickness > config.initial_thickness) {
+		return false;
+	}
+
 	if (!std::isfinite(config.step_length) || config.step_length <= 0.0f) {
 		return false;
 	}
@@ -176,6 +185,9 @@ GrowthStepResult IvyGrowthSolver::step() {
 		}
 	}
 
+	if (!update_thicknesses(next_active_tips)) {
+		return GrowthStepResult::ERROR;
+	}
 	if (m_graph.get_point_count() >= m_config->max_points) {
 		m_active_tips.clear();
 	} else {
@@ -347,4 +359,79 @@ bool IvyGrowthSolver::try_spawn_branch(
 	return true;
 }
 
-} //namespace ivygenerator
+bool IvyGrowthSolver::update_thicknesses(const std::vector<int32_t> &active_tips) {
+	if (active_tips.empty()) {
+		return true;
+	}
+
+	if (m_config->thickness_growth_per_step <= 0.0f && m_config->wither_rate_per_step <= 0.0f) {
+		return true;
+	}
+
+	const int32_t point_count = m_graph.get_point_count();
+	std::vector<int32_t> downstream_tips(static_cast<size_t>(point_count), 0);
+	std::vector<uint8_t> is_active_tip(static_cast<size_t>(point_count), 0);
+
+	for (const int32_t tip_index : active_tips) {
+		if (tip_index < 0 || tip_index >= point_count) {
+			return false;
+		}
+		downstream_tips[static_cast<size_t>(tip_index)] += 1;
+		is_active_tip[static_cast<size_t>(tip_index)] = 1;
+	}
+
+	// Accumulate downstream active-tip support upward toward roots in O(N).
+	for (int32_t i = point_count - 1; i >= 0; --i) {
+		const int32_t support = downstream_tips[static_cast<size_t>(i)];
+		if (support <= 0) {
+			continue;
+		}
+
+		const IvyPoint *point = m_graph.get_point(i);
+		if (point == nullptr) {
+			return false;
+		}
+
+		if (point->parent_index >= 0 && point->parent_index < point_count) {
+			downstream_tips[static_cast<size_t>(point->parent_index)] += support;
+		}
+	}
+
+	for (int32_t i = 0; i < point_count; ++i) {
+		if (is_active_tip[static_cast<size_t>(i)] != 0) {
+			continue;
+		}
+
+		const IvyPoint *point = m_graph.get_point(i);
+		if (point == nullptr) {
+			return false;
+		}
+
+		const int32_t support = downstream_tips[static_cast<size_t>(i)];
+		float updated_thickness = point->thickness;
+
+		if (support > 0) {
+			if (m_config->thickness_growth_per_step > 0.0f) {
+				const float growth = m_config->thickness_growth_per_step *
+						std::sqrt(static_cast<float>(support));
+				updated_thickness = std::min(m_config->max_thickness, point->thickness + growth);
+			}
+		} else {
+			if (m_config->wither_rate_per_step > 0.0f) {
+				updated_thickness = std::max(
+						m_config->min_withered_thickness,
+						point->thickness - m_config->wither_rate_per_step);
+			}
+		}
+
+		if (updated_thickness != point->thickness) {
+			if (!m_graph.set_point_thickness(i, updated_thickness)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+} // namespace ivygenerator

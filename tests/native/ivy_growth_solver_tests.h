@@ -45,8 +45,10 @@ private:
 	bool test_step_momentum_and_upward_tropism();
 	bool test_step_attraction_gradient_steering();
 	bool test_step_contour_adherence_follows_tangent();
-	bool test_step_branch_spawning();
-	bool test_step_max_points_termination();
+	bool test_step_branching_waits_until_next_iteration();
+	bool test_step_branching_determinism();
+	bool test_step_respects_max_points();
+	bool test_step_thickness_growth_and_withering();
 
 	int m_passed = 0;
 	int m_failed = 0;

@@ -253,6 +253,50 @@ bool IvyGrowthSolverTests::test_reject_invalid_config() {
 		return false;
 	}
 
+	IvyGrowthConfig negative_thickness_growth;
+	negative_thickness_growth.thickness_growth_per_step = -0.01f;
+	if (!expect(!solver.initialize(wall, sampler, negative_thickness_growth, rng, starts),
+				"Negative thickness_growth_per_step should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig nan_thickness_growth;
+	nan_thickness_growth.thickness_growth_per_step = std::numeric_limits<float>::quiet_NaN();
+	if (!expect(!solver.initialize(wall, sampler, nan_thickness_growth, rng, starts),
+				"NaN thickness_growth_per_step should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig max_thickness_too_small;
+	max_thickness_too_small.initial_thickness = 0.2f;
+	max_thickness_too_small.max_thickness = 0.1f;
+	if (!expect(!solver.initialize(wall, sampler, max_thickness_too_small, rng, starts),
+				"max_thickness < initial_thickness should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig negative_wither_rate;
+	negative_wither_rate.wither_rate_per_step = -0.001f;
+	if (!expect(!solver.initialize(wall, sampler, negative_wither_rate, rng, starts),
+				"Negative wither_rate_per_step should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig zero_min_withered;
+	zero_min_withered.min_withered_thickness = 0.0f;
+	if (!expect(!solver.initialize(wall, sampler, zero_min_withered, rng, starts),
+				"Zero min_withered_thickness should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig excessive_min_withered;
+	excessive_min_withered.initial_thickness = 0.1f;
+	excessive_min_withered.min_withered_thickness = 0.15f;
+	if (!expect(!solver.initialize(wall, sampler, excessive_min_withered, rng, starts),
+				"min_withered_thickness > initial_thickness should be rejected")) {
+		return false;
+	}
+
 	IvyGrowthConfig too_few_max_points;
 	too_few_max_points.max_points = 1;
 	const std::vector<Vector3> two_starts = {
@@ -807,6 +851,93 @@ bool IvyGrowthSolverTests::test_step_respects_max_points() {
 					"Graph size should remain capped at 4");
 }
 
+bool IvyGrowthSolverTests::test_step_thickness_growth_and_withering() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	const std::vector<Vector3> starts = {
+		Vector3(5.0f, 1.0f, 0.0f),
+		Vector3(5.0f, 9.8f, 0.0f)
+	};
+
+	IvyGrowthConfig config;
+	config.initial_thickness = 0.10f;
+	config.step_length = 0.5f;
+	config.upward_weight = 1.0f;
+	config.momentum_weight = 0.0f;
+	config.random_weight = 0.0f;
+	config.attraction_weight = 0.0f;
+	config.contour_weight = 0.0f;
+	config.branch_probability = 0.0f;
+	config.thickness_growth_per_step = 0.02f;
+	config.max_thickness = 0.50f;
+	config.wither_rate_per_step = 0.01f;
+	config.min_withered_thickness = 0.05f;
+
+	IvyRandom rng(42);
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
+				"Initialization with thickness and withering config should succeed")) {
+		return false;
+	}
+
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 1 should advance")) {
+		return false;
+	}
+
+	const IvyGrowthGraph &graph = solver.get_graph();
+	if (!expect(graph.get_point_count() == 3, "Graph should have 2 roots and 1 advanced point")) {
+		return false;
+	}
+
+	const IvyPoint *p0 = graph.get_point(0);
+	const IvyPoint *p1 = graph.get_point(1);
+	const IvyPoint *p2 = graph.get_point(2);
+
+	if (!expect(p0 != nullptr && p1 != nullptr && p2 != nullptr, "All 3 points should exist")) {
+		return false;
+	}
+
+	if (!expect(std::abs(p0->thickness - 0.12f) < 0.0001f,
+				"Active branch root should thicken by thickness_growth_per_step")) {
+		return false;
+	}
+
+	if (!expect(std::abs(p1->thickness - 0.09f) < 0.0001f,
+				"Terminated branch root should wither by wither_rate_per_step")) {
+		return false;
+	}
+
+	if (!expect(std::abs(p2->thickness - 0.10f) < 0.0001f,
+				"Active tip should preserve initial_thickness")) {
+		return false;
+	}
+
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 2 should advance")) {
+		return false;
+	}
+
+	const IvyPoint *p0_s2 = graph.get_point(0);
+	const IvyPoint *p1_s2 = graph.get_point(1);
+	const IvyPoint *p2_s2 = graph.get_point(2);
+	const IvyPoint *p3_s2 = graph.get_point(3);
+
+	return expect(p0_s2 != nullptr && p1_s2 != nullptr && p2_s2 != nullptr && p3_s2 != nullptr,
+				   "All 4 points should exist after step 2") &&
+			expect(std::abs(p0_s2->thickness - 0.14f) < 0.0001f,
+					"Root 0 should accumulate further thickening after step 2") &&
+			expect(std::abs(p1_s2->thickness - 0.08f) < 0.0001f,
+					"Root 1 should accumulate further withering after step 2") &&
+			expect(std::abs(p2_s2->thickness - 0.12f) < 0.0001f,
+					"Point 2 should thicken now that it is an internal segment") &&
+			expect(std::abs(p3_s2->thickness - 0.10f) < 0.0001f,
+					"Active tip 3 should preserve initial_thickness");
+}
+
 bool IvyGrowthSolverTests::run_all() {
 	m_passed = 0;
 	m_failed = 0;
@@ -866,6 +997,9 @@ bool IvyGrowthSolverTests::run_all() {
 
 	run_test("Step respects max_points",
 			&IvyGrowthSolverTests::test_step_respects_max_points);
+
+	run_test("Step thickness growth and withering",
+			&IvyGrowthSolverTests::test_step_thickness_growth_and_withering);
 
 	std::cout << "\n=== Test Summary ===\n";
 	std::cout << "Passed: " << m_passed << '\n';

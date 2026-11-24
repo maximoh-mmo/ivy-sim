@@ -41,6 +41,7 @@ bool IvyGrowthGraphTests::run_all() {
 	test_invalid_parent_index();
 	test_get_point();
 	test_clear();
+	test_set_point_thickness();
 
 	std::cout << "\n=== IvyGrowthGraph Test Summary ===\n";
 	std::cout << "Passed: " << tests_passed << '\n';
@@ -161,4 +162,28 @@ void IvyGrowthGraphTests::test_clear() {
 	expect("Cleared graph has no accessible points", graph.get_point(0) == nullptr);
 }
 
+void IvyGrowthGraphTests::test_set_point_thickness() {
+	ivygenerator::IvyGrowthGraph graph;
+
+	ivygenerator::IvyPoint root;
+	root.position = godot::Vector3(1.0f, 2.0f, 3.0f);
+	root.thickness = 0.1f;
+	root.parent_index = -1;
+	graph.add_point(root);
+
+	expect("Update valid point thickness succeeds",
+			graph.set_point_thickness(0, 0.35f));
+	expect("Updated thickness is stored",
+			graph.get_point(0) != nullptr && graph.get_point(0)->thickness == 0.35f);
+	expect("Reject negative index for thickness update",
+			!graph.set_point_thickness(-1, 0.2f));
+	expect("Reject out-of-range index for thickness update",
+			!graph.set_point_thickness(1, 0.2f));
+	expect("Reject negative thickness value",
+			!graph.set_point_thickness(0, -0.1f));
+	expect("Reject NaN thickness value",
+			!graph.set_point_thickness(0, std::numeric_limits<float>::quiet_NaN()));
+	expect("Failed thickness updates preserve previous value",
+			graph.get_point(0) != nullptr && graph.get_point(0)->thickness == 0.35f);
+}
 } // namespace ivygenerator

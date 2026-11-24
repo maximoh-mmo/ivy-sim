@@ -31,6 +31,10 @@ struct IvyGrowthConfig {
 	float branch_probability = 0.0f; /**< Per-step probability [0, 1] of spawning a side branch. */
 	float branch_angle = 0.5235988f; /**< Branch deflection angle in radians (~30 degrees). */
 	int32_t max_points = 10000; /**< Maximum total points allowed in the growth graph. */
+	float thickness_growth_per_step = 0.005f; /**< Base radial thickening per step for active vascular segments. */
+	float max_thickness = 0.5f; /**< Maximum radial thickness a woody stem can reach. */
+	float wither_rate_per_step = 0.002f; /**< Radial shrinkage per step for terminated branch segments. */
+	float min_withered_thickness = 0.02f; /**< Minimum radial thickness preserved for visible dried twigs (> 0). */
 };
 
 } // namespace ivygenerator

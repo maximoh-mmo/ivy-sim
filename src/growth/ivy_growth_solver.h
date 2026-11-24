@@ -120,6 +120,15 @@ private:
 			const godot::Vector2 &parent_local,
 			const godot::Vector2 &main_direction_local,
 			std::vector<int32_t> &next_active_tips);
+
+	/**
+	 * @brief Updates stem radii across the graph based on active tip support and branch termination.
+	 * @details Non-active internal segments accumulate downstream tip counts to simulate vascular thickening
+	 * (Leonardo's da Vinci / pipe model rule), while segments with zero active downstream tips wither.
+	 * @param active_tips List of tip indices that remain active in the simulation.
+	 * @return True if thickness updates succeeded, false on graph indexing error.
+	 */
+	bool update_thicknesses(const std::vector<int32_t> &active_tips);
 };
 
 } // namespace ivygenerator

@@ -56,6 +56,14 @@ public:
 	int32_t get_point_count() const;
 
 	/**
+	 * @brief Updates the thickness of an existing point in the graph.
+	 * @param index Zero-based point index.
+	 * @param thickness New finite, non-negative thickness value.
+	 * @return bool True if the index and thickness were valid and the point was updated.
+	 */
+	bool set_point_thickness(int32_t index, float thickness);
+
+	/**
 	 * @brief Clears all points from the graph.
 	 */
 	void clear();

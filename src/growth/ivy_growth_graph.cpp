@@ -11,7 +11,6 @@
  */
 
 #include "ivy_growth_graph.h"
-
 #include <limits>
 
 namespace ivygenerator {
@@ -47,6 +46,19 @@ const IvyPoint *IvyGrowthGraph::get_point(int32_t index) const {
 
 int32_t IvyGrowthGraph::get_point_count() const {
 	return static_cast<int32_t>(m_points.size());
+}
+
+bool IvyGrowthGraph::set_point_thickness(int32_t index, float thickness) {
+	if (index < 0 || index >= static_cast<int32_t>(m_points.size())) {
+		return false;
+	}
+
+	if (!std::isfinite(thickness) || thickness < 0.0f) {
+		return false;
+	}
+
+	m_points[index].thickness = thickness;
+	return true;
 }
 
 void IvyGrowthGraph::clear() {

@@ -34,6 +34,7 @@ private:
 	void test_invalid_parent_index();
 	void test_get_point();
 	void test_clear();
+	void test_set_point_thickness();
 
 public:
 	/**
