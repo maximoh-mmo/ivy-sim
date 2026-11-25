@@ -7,8 +7,21 @@
 
 #pragma once
 
-#include "godot_cpp/classes/ref_counted.hpp"
+#include "environment/ivy_surface_sampler.h"
+#include "environment/ivy_wall.h"
+#include "growth/ivy_growth_solver.h"
 #include "random/ivy_random.h"
+#include "settings/ivy_growth_config.h"
+#include "settings/ivy_settings.h"
+
+#include <cstdint>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/variant/packed_float32_array.hpp>
+#include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
+#include <godot_cpp/variant/vector2.hpp>
+#include <godot_cpp/variant/vector3.hpp>
 
 /**
  * @file ivy_generator.h
@@ -35,55 +48,106 @@ protected:
 	static void _bind_methods();
 
 public:
-	/**
-	 * @brief Constructs an IvyGenerator with a deterministic starting seed.
-	 * @param seed Initial RNG seed (default: 42).
-	 */
-	IvyGenerator(const int32_t seed = 42);
-
-	/**
-	 * @brief Default virtual destructor.
-	 */
+	IvyGenerator() = default;
 	~IvyGenerator() override = default;
 
 	/**
-	 * @brief Executes the ivy generation routine and test suite verification.
+	 * @brief Assigns the IvySettings resource containing growth parameters.
+	 * @param settings Reference to configured IvySettings resource.
 	 */
-	void generate();
+	void set_settings(const godot::Ref<IvySettings> &settings);
 
 	/**
-	 * @brief Updates the RNG seed used for procedural ivy generation.
-	 * @param seed New random seed value.
+	 * @brief Retrieves the active IvySettings resource.
+	 * @return Reference to current IvySettings.
 	 */
-	void set_seed(const int32_t seed);
+	godot::Ref<IvySettings> get_settings() const;
+
+	/**
+	 * @brief Configures the planar wall surface for ivy growth.
+	 * @param origin 3D world origin of the bottom-left wall corner.
+	 * @param axis_u Unit vector defining the horizontal wall axis (+U).
+	 * @param axis_v Unit vector defining the vertical wall axis (+V).
+	 * @param width Physical width of the wall along axis_u.
+	 * @param height Physical height of the wall along axis_v.
+	 * @param uv_scale UV texture scaling multiplier.
+	 * @param uv_offset UV texture offset coordinate.
+	 * @return True if wall configuration parameters are valid.
+	 */
+	bool set_wall(
+			const godot::Vector3 &origin,
+			const godot::Vector3 &axis_u,
+			const godot::Vector3 &axis_v,
+			float width,
+			float height,
+			const godot::Vector2 &uv_scale = godot::Vector2(1.0f, 1.0f),
+			const godot::Vector2 &uv_offset = godot::Vector2(0.0f, 0.0f));
+
+	/**
+	 * @brief Sets the attraction/obstacle scalar guidance image.
+	 * @param image Godot Image containing grayscale attraction values.
+	 * @return True if image data was valid and loaded successfully.
+	 */
+	bool set_attraction_image(const godot::Ref<godot::Image> &image);
+
+	/**
+	 * @brief Defines explicit starting points on the wall plane.
+	 * @param start_points Array of 3D positions on the wall surface.
+	 */
+	void set_start_points(const godot::PackedVector3Array &start_points);
+
+	/**
+	 * @brief Retrieves the configured explicit start points.
+	 * @return Array of explicit 3D starting positions.
+	 */
+	godot::PackedVector3Array get_start_points() const;
+
+	/**
+	 * @brief Clears all explicit starting positions.
+	 */
+	void clear_start_points();
+
+	/**
+	 * @brief Executes procedural ivy simulation and populates graph buffers.
+	 * @return True on successful simulation completion, false on error.
+	 */
+	bool generate();
+
+	/**
+	 * @brief Retrieves the total point count in the generated graph.
+	 * @return Total number of generated points.
+	 */
+	int32_t get_point_count() const;
+
+	/**
+	 * @brief Retrieves all point world positions.
+	 * @return Packed array of 3D world coordinates.
+	 */
+	godot::PackedVector3Array get_point_positions() const;
+
+	/**
+	 * @brief Retrieves all point radial thicknesses.
+	 * @return Packed array of float thickness values.
+	 */
+	godot::PackedFloat32Array get_point_thicknesses() const;
+
+	/**
+	 * @brief Retrieves all point parent topological indices.
+	 * @return Packed array of parent indices (-1 for root nodes).
+	 */
+	godot::PackedInt32Array get_point_parent_indices() const;
 
 private:
-	int32_t m_seed; /**< Current simulation seed. */
-	IvyRandom m_random; /**< Deterministic PCG32 random generator instance. */
-
-	/**
-	 * @brief Internal verification routines demonstrating generator output.
-	 */
-	void test_cases();
-
-	/**
-	 * @brief Verifies raw 32-bit unsigned integer generation.
-	 */
-	void random_test();
-
-	/**
-	 * @brief Verifies bounded integer generation.
-	 */
-	void random_int_test();
-
-	/**
-	 * @brief Verifies boolean probability distribution.
-	 */
-	void random_bool_test();
-
-	/**
-	 * @brief Verifies canonical and bounded float generation.
-	 */
-	void random_float_test();
+	void clear_results();
+	godot::Ref<IvySettings> m_settings;
+	IvyWall m_wall;
+	IvySurfaceSampler m_surface_sampler;
+	IvyGrowthConfig m_growth_config;
+	IvyRandom m_random;
+	IvyGrowthSolver m_solver;
+	godot::PackedVector3Array m_explicit_start_points;
+	godot::PackedVector3Array m_positions;
+	godot::PackedFloat32Array m_thicknesses;
+	godot::PackedInt32Array m_parent_indices;
 };
 } // namespace ivygenerator

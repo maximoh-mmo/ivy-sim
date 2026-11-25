@@ -78,6 +78,15 @@ public:
 private:
 	IvyGrowthGraph m_graph;
 	std::vector<int32_t> m_active_tips;
+	std::vector<int32_t> m_steps_since_branch;
+
+	// Spacial Grid
+	std::vector<godot::Vector2> m_local_positions;
+	std::vector<int32_t> m_grid_heads;
+	std::vector<int32_t> m_grid_next;
+	int32_t m_grid_cols = 0;
+	int32_t m_grid_rows = 0;
+	float m_grid_cell_size = 0.0f;
 
 	const IvyWall *m_wall = nullptr;
 	const IvySurfaceSampler *m_surface_sampler = nullptr;
@@ -119,7 +128,8 @@ private:
 			int32_t parent_index,
 			const godot::Vector2 &parent_local,
 			const godot::Vector2 &main_direction_local,
-			std::vector<int32_t> &next_active_tips);
+			std::vector<int32_t> &next_active_tips,
+			bool &out_branched);
 
 	/**
 	 * @brief Updates stem radii across the graph based on active tip support and branch termination.
@@ -129,6 +139,61 @@ private:
 	 * @return True if thickness updates succeeded, false on graph indexing error.
 	 */
 	bool update_thicknesses(const std::vector<int32_t> &active_tips);
+
+	/**
+	 * @brief Computes the combined local growth direction for a tip.
+	 * @param tip_index Graph index of the advancing tip.
+	 * @param tip The IvyPoint data of the advancing tip.
+	 * @param tip_local 2D local position on the wall surface.
+	 * @param out_direction Output unit vector for the step direction.
+	 * @return True if direction evaluation succeeded, false on error.
+	 */
+	bool compute_step_local_direction(
+			int32_t tip_index,
+			const IvyPoint &tip,
+			const godot::Vector2 &tip_local,
+			godot::Vector2 &out_direction);
+
+	/**
+	 * @brief Inserts a point into the uniform spatial hash grid.
+	 * @param point_index Graph index of the point.
+	 * @param local_pos 2D local position on the wall.
+	 */
+	void register_point_in_grid(
+			int32_t point_index,
+			const godot::Vector2 &local_pos);
+
+	/**
+	 * @brief Checks if candidate_index belongs to the recent ancestor chain or sibling of tip_index.
+	 * @param tip_index Graph index of the active tip.
+	 * @param candidate_index Graph index of a neighboring point.
+	 * @param max_hops Maximum parent hops to traverse upward.
+	 * @return True if candidate is closely related in lineage, false otherwise.
+	 */
+	bool is_recent_lineage(
+			int32_t tip_index,
+			int32_t candidate_index,
+			int32_t max_hops) const;
+
+	/**
+	 * @brief Computes a normalized repulsive vector steering away from nearby unrelated points.
+	 * @param tip_index Graph index of the active tip.
+	 * @param tip_local 2D local position of the tip on the wall.
+	 * @return Repulsive unit vector (or zero vector if uncrowded).
+	 */
+	godot::Vector2 compute_avoidance_vector(
+			int32_t tip_index,
+			const godot::Vector2 &tip_local) const;
+
+	/**
+	 * @brief Counts nearby non-ancestor points within the crowding radius.
+	 * @param tip_index Graph index of the advancing tip.
+	 * @param query_local Proposed 2D position for the next step.
+	 * @return Number of neighboring points within crowding_radius.
+	 */
+	int32_t count_crowding_neighbors(
+			int32_t tip_index,
+			const godot::Vector2 &query_local) const;
 };
 
 } // namespace ivygenerator

@@ -203,6 +203,48 @@ bool IvyGrowthSolverTests::test_reject_invalid_config() {
 		return false;
 	}
 
+	IvyGrowthConfig negative_saturation;
+	negative_saturation.gradient_saturation = -0.1f;
+	if (!expect(!solver.initialize(wall, sampler, negative_saturation, rng, starts),
+				"Negative gradient_saturation should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig negative_branch_interval;
+	negative_branch_interval.min_branch_interval = -1;
+	if (!expect(!solver.initialize(wall, sampler, negative_branch_interval, rng, starts),
+				"Negative min_branch_interval should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig negative_crowding_radius;
+	negative_crowding_radius.crowding_radius = -0.1f;
+	if (!expect(!solver.initialize(wall, sampler, negative_crowding_radius, rng, starts),
+				"Negative crowding_radius should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig nan_crowding_radius;
+	nan_crowding_radius.crowding_radius = std::numeric_limits<float>::quiet_NaN();
+	if (!expect(!solver.initialize(wall, sampler, nan_crowding_radius, rng, starts),
+				"NaN crowding_radius should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig negative_avoidance;
+	negative_avoidance.avoidance_weight = -0.1f;
+	if (!expect(!solver.initialize(wall, sampler, negative_avoidance, rng, starts),
+				"Negative avoidance_weight should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig negative_max_crowding;
+	negative_max_crowding.max_crowding_neighbors = -1;
+	if (!expect(!solver.initialize(wall, sampler, negative_max_crowding, rng, starts),
+				"Negative max_crowding_neighbors should be rejected")) {
+		return false;
+	}
+
 	IvyGrowthConfig zero_directional_weights;
 	zero_directional_weights.momentum_weight = 0.0f;
 	zero_directional_weights.upward_weight = 0.0f;
@@ -938,6 +980,297 @@ bool IvyGrowthSolverTests::test_step_thickness_growth_and_withering() {
 					"Active tip 3 should preserve initial_thickness");
 }
 
+bool IvyGrowthSolverTests::test_step_pipe_model_and_thickness_clamps() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	// Part 1: Pipe-model sqrt(2) scaling when a root feeds 2 active tips.
+	IvyGrowthConfig pipe_config;
+	pipe_config.initial_thickness = 0.10f;
+	pipe_config.step_length = 0.5f;
+	pipe_config.branch_probability = 1.0f;
+	pipe_config.branch_angle = 0.5f;
+	pipe_config.thickness_growth_per_step = 0.02f;
+	pipe_config.max_thickness = 0.50f;
+
+	IvyRandom rng_pipe(42);
+	IvyGrowthSolver pipe_solver;
+	if (!expect(pipe_solver.initialize(wall, sampler, pipe_config, rng_pipe,
+						{ Vector3(5.0f, 0.0f, 0.0f) }),
+				"Pipe-model solver initialization should succeed")) {
+		return false;
+	}
+
+	if (!expect(pipe_solver.step() == GrowthStepResult::ADVANCED, "Pipe-model step should advance") ||
+			!expect(pipe_solver.get_graph().get_point_count() == 3,
+					"Root should branch into 2 active tips")) {
+		return false;
+	}
+
+	const float expected_root_thickness = 0.10f + 0.02f * std::sqrt(2.0f);
+	const IvyPoint *branched_root = pipe_solver.get_graph().get_point(0);
+	const IvyPoint *main_tip = pipe_solver.get_graph().get_point(1);
+	const IvyPoint *branch_tip = pipe_solver.get_graph().get_point(2);
+
+	if (!expect(branched_root != nullptr && main_tip != nullptr && branch_tip != nullptr,
+				"All 3 branched points should exist") ||
+			!expect(std::abs(branched_root->thickness - expected_root_thickness) < 0.0001f,
+					"Root supporting 2 tips should thicken by growth * sqrt(2)") ||
+			!expect(std::abs(main_tip->thickness - 0.10f) < 0.0001f &&
+							std::abs(branch_tip->thickness - 0.10f) < 0.0001f,
+					"Both active tips should remain at initial_thickness")) {
+		return false;
+	}
+
+	// Part 2: Upper max_thickness ceiling and lower min_withered_thickness floor.
+	IvyGrowthConfig clamp_config;
+	clamp_config.initial_thickness = 0.10f;
+	clamp_config.step_length = 0.5f;
+	clamp_config.upward_weight = 1.0f;
+	clamp_config.momentum_weight = 0.0f;
+	clamp_config.attraction_weight = 0.0f;
+	clamp_config.contour_weight = 0.0f;
+	clamp_config.branch_probability = 0.0f;
+	clamp_config.thickness_growth_per_step = 0.05f;
+	clamp_config.max_thickness = 0.13f;
+	clamp_config.wither_rate_per_step = 0.04f;
+	clamp_config.min_withered_thickness = 0.05f;
+
+	IvyRandom rng_clamp(42);
+	IvyGrowthSolver clamp_solver;
+	const std::vector<Vector3> clamp_starts = {
+		Vector3(5.0f, 1.0f, 0.0f),
+		Vector3(5.0f, 9.8f, 0.0f)
+	};
+	if (!expect(clamp_solver.initialize(wall, sampler, clamp_config, rng_clamp, clamp_starts),
+				"Clamp solver initialization should succeed")) {
+		return false;
+	}
+
+	// Run 3 steps: root 0 clamps at max_thickness (0.13), dead root 1 clamps at min_withered_thickness (0.05).
+	for (int i = 0; i < 3; ++i) {
+		if (!expect(clamp_solver.step() == GrowthStepResult::ADVANCED, "Clamp test step should advance")) {
+			return false;
+		}
+	}
+
+	const IvyPoint *clamped_living = clamp_solver.get_graph().get_point(0);
+	const IvyPoint *clamped_dead = clamp_solver.get_graph().get_point(1);
+
+	return expect(clamped_living != nullptr && clamped_dead != nullptr, "Both roots should exist") &&
+			expect(std::abs(clamped_living->thickness - 0.13f) < 0.0001f,
+					"Living stem should clamp at max_thickness") &&
+			expect(std::abs(clamped_dead->thickness - 0.05f) < 0.0001f,
+					"Dead branch should clamp at min_withered_thickness so dried twigs stay visible");
+}
+
+bool IvyGrowthSolverTests::test_step_gradient_damping_scales_with_slope() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.momentum_weight = 1.0f;
+	config.upward_weight = 0.0f;
+	config.random_weight = 0.0f;
+	config.attraction_weight = 1.0f;
+	config.contour_weight = 0.0f;
+	config.gradient_saturation = 0.1f;
+
+	const std::vector<Vector3> starts = { Vector3(5.0f, 5.0f, 0.0f) };
+
+	// Shallow right-sloping gradient (0.45 -> 0.55)
+	IvySurfaceSampler shallow_sampler;
+	shallow_sampler.set_pixel_data({ 0.45f, 0.55f,
+										   0.45f, 0.55f },
+			2, 2);
+
+	IvyRandom rng_shallow(42);
+	IvyGrowthSolver solver_shallow;
+	solver_shallow.initialize(wall, shallow_sampler, config, rng_shallow, starts);
+	solver_shallow.step();
+
+	// Steep right-sloping gradient (0.0 -> 1.0)
+	IvySurfaceSampler steep_sampler;
+	steep_sampler.set_pixel_data({ 0.0f, 1.0f,
+										 0.0f, 1.0f },
+			2, 2);
+
+	IvyRandom rng_steep(42);
+	IvyGrowthSolver solver_steep;
+	solver_steep.initialize(wall, steep_sampler, config, rng_steep, starts);
+	solver_steep.step();
+
+	const IvyPoint *shallow_tip = solver_shallow.get_graph().get_point(1);
+	const IvyPoint *steep_tip = solver_steep.get_graph().get_point(1);
+
+	return expect(shallow_tip != nullptr && steep_tip != nullptr,
+				   "Both shallow and steep gradient steps should produce a point") &&
+			expect(shallow_tip->position.x > 5.0f,
+					"Shallow gradient should still steer toward brighter right side") &&
+			expect(steep_tip->position.x > shallow_tip->position.x + 0.05f,
+					"Steeper gradient should deflect more strongly than a shallow gradient");
+}
+
+bool IvyGrowthSolverTests::test_step_min_branch_interval_enforced() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.momentum_weight = 1.0f;
+	config.upward_weight = 0.0f;
+	config.branch_probability = 1.0f;
+	config.branch_angle = 0.5f;
+	config.min_branch_interval = 2;
+
+	IvyRandom rng(42);
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, { Vector3(5.0f, 0.0f, 0.0f) }),
+				"Initialization with min_branch_interval should succeed")) {
+		return false;
+	}
+
+	// Steps 1 & 2: root cooldown (0 -> 1 -> 2), no branching yet (1 -> 2 -> 3 points).
+	solver.step();
+	if (!expect(solver.get_graph().get_point_count() == 2,
+				"Step 1 should not branch before min_branch_interval")) {
+		return false;
+	}
+
+	solver.step();
+	if (!expect(solver.get_graph().get_point_count() == 3,
+				"Step 2 should not branch before min_branch_interval")) {
+		return false;
+	}
+
+	// Step 3: tip has 2 unbranched steps -> eligible to branch (3 -> 5 points), both reset to 0.
+	solver.step();
+	if (!expect(solver.get_graph().get_point_count() == 5,
+				"Step 3 should branch once min_branch_interval is reached")) {
+		return false;
+	}
+
+	// Steps 4 & 5: both main stem and new branch are back on cooldown (5 -> 7 -> 9 points).
+	solver.step();
+	if (!expect(solver.get_graph().get_point_count() == 7,
+				"Step 4 should suppress branching on both main stem and new branch")) {
+		return false;
+	}
+
+	solver.step();
+	if (!expect(solver.get_graph().get_point_count() == 9,
+				"Step 5 should still suppress branching before cooldown completes")) {
+		return false;
+	}
+
+	// Step 6: both tips reach 2 unbranched steps -> both branch again (9 -> 13 points).
+	solver.step();
+	return expect(solver.get_graph().get_point_count() == 13,
+			"Step 6 should allow both tips to branch again after cooldown");
+}
+
+bool IvyGrowthSolverTests::test_step_avoidance_steering() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	const std::vector<Vector3> starts = {
+		Vector3(4.9f, 1.0f, 0.0f),
+		Vector3(5.1f, 1.0f, 0.0f)
+	};
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.upward_weight = 1.0f;
+	config.momentum_weight = 0.0f;
+	config.random_weight = 0.0f;
+	config.branch_probability = 0.0f;
+	config.crowding_radius = 1.0f;
+	config.avoidance_weight = 2.0f;
+
+	IvyRandom rng(42);
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
+				"Initialization with avoidance config should succeed")) {
+		return false;
+	}
+
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step should advance both roots")) {
+		return false;
+	}
+
+	const IvyPoint *p_left = solver.get_graph().get_point(2);
+	const IvyPoint *p_right = solver.get_graph().get_point(3);
+
+	if (!expect(p_left != nullptr && p_right != nullptr, "Both advanced points should exist")) {
+		return false;
+	}
+
+	return expect(p_left->position.x < 4.9f,
+				   "Left tip should be deflected leftward by self-avoidance repulsion") &&
+			expect(p_right->position.x > 5.1f,
+					"Right tip should be deflected rightward by self-avoidance repulsion");
+}
+
+bool IvyGrowthSolverTests::test_step_crowding_termination() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	const std::vector<Vector3> starts = {
+		Vector3(5.0f, 1.5f, 0.0f),
+		Vector3(5.05f, 1.5f, 0.0f),
+		Vector3(5.1f, 1.5f, 0.0f),
+		Vector3(5.05f, 1.0f, 0.0f)
+	};
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.upward_weight = 1.0f;
+	config.momentum_weight = 0.0f;
+	config.random_weight = 0.0f;
+	config.branch_probability = 0.0f;
+	config.crowding_radius = 1.0f;
+	config.max_crowding_neighbors = 2;
+
+	IvyRandom rng(42);
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
+				"Initialization with crowding termination config should succeed")) {
+		return false;
+	}
+
+	solver.step();
+
+	const IvyGrowthGraph &graph = solver.get_graph();
+	bool root3_has_child = false;
+	for (int32_t i = 4; i < graph.get_point_count(); ++i) {
+		const IvyPoint *pt = graph.get_point(i);
+		if (pt != nullptr && pt->parent_index == 3) {
+			root3_has_child = true;
+			break;
+		}
+	}
+
+	return expect(!root3_has_child, "Tip 3 should terminate due to exceeding max_crowding_neighbors");
+}
+
 bool IvyGrowthSolverTests::run_all() {
 	m_passed = 0;
 	m_failed = 0;
@@ -1000,6 +1333,21 @@ bool IvyGrowthSolverTests::run_all() {
 
 	run_test("Step thickness growth and withering",
 			&IvyGrowthSolverTests::test_step_thickness_growth_and_withering);
+
+	run_test("Step pipe-model and Thickness Clamps",
+			&IvyGrowthSolverTests::test_step_pipe_model_and_thickness_clamps);
+
+	run_test("Step gradient dumping scales with slope",
+			&IvyGrowthSolverTests::test_step_gradient_damping_scales_with_slope);
+
+	run_test("Step min branch interval enforced",
+			&IvyGrowthSolverTests::test_step_min_branch_interval_enforced);
+
+	run_test("Step avoidance steering",
+			&IvyGrowthSolverTests::test_step_avoidance_steering);
+
+	run_test("Step crowding termination",
+			&IvyGrowthSolverTests::test_step_crowding_termination);
 
 	std::cout << "\n=== Test Summary ===\n";
 	std::cout << "Passed: " << m_passed << '\n';

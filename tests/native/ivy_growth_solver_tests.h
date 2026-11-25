@@ -49,6 +49,11 @@ private:
 	bool test_step_branching_determinism();
 	bool test_step_respects_max_points();
 	bool test_step_thickness_growth_and_withering();
+	bool test_step_pipe_model_and_thickness_clamps();
+	bool test_step_gradient_damping_scales_with_slope();
+	bool test_step_min_branch_interval_enforced();
+	bool test_step_avoidance_steering();
+	bool test_step_crowding_termination();
 
 	int m_passed = 0;
 	int m_failed = 0;
