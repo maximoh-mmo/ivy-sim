@@ -112,6 +112,8 @@ private:
 	IvyGrowthGraph m_graph;
 	std::vector<int32_t> m_active_tips;
 	std::vector<int32_t> m_steps_since_branch;
+	std::vector<int32_t> m_top_edge_steps;
+	std::vector<int32_t> m_boundary_tips;
 
 	// Spacial Grid
 	std::vector<godot::Vector2> m_local_positions;

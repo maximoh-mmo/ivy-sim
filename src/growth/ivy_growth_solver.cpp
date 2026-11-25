@@ -45,11 +45,17 @@ bool IvyGrowthSolver::initialize(
 	m_grid_cell_size = 0.0f;
 	m_target_points_local.clear();
 	m_target_reached.clear();
+	m_top_edge_steps.clear();
+	m_boundary_tips.clear();
 
 	if (!wall.is_valid()) {
 		return false;
 	}
 	if (!surface_sampler.is_valid()) {
+		return false;
+	}
+
+	if (config.max_top_edge_steps < 0) {
 		return false;
 	}
 
@@ -151,6 +157,8 @@ bool IvyGrowthSolver::initialize(
 	}
 	m_active_tips.reserve(start_points.size());
 	m_steps_since_branch.reserve(start_points.size());
+	m_top_edge_steps.reserve(start_points.size());
+
 	for (const godot::Vector3 &start_point : start_points) {
 		IvyPoint root_point;
 		root_point.position = start_point;
@@ -166,10 +174,13 @@ bool IvyGrowthSolver::initialize(
 			m_grid_next.clear();
 			m_target_points_local.clear();
 			m_target_reached.clear();
+			m_top_edge_steps.clear();
+			m_boundary_tips.clear();
 			return false;
 		}
 		m_active_tips.push_back(root_index);
 		m_steps_since_branch.push_back(0);
+		m_top_edge_steps.push_back(0);
 		register_point_in_grid(root_index, wall.world_to_local(start_point));
 	}
 
@@ -228,11 +239,35 @@ GrowthStepResult IvyGrowthSolver::step() {
 			return GrowthStepResult::ERROR;
 		}
 
-		const godot::Vector2 next_local =
+		godot::Vector2 next_local =
 				current_local + direction_local * m_config->step_length;
 
+		int32_t next_top_edge_steps = m_top_edge_steps[static_cast<size_t>(tip_index)];
+		if (m_config->max_top_edge_steps > 0) {
+			const float top_margin = std::min(m_wall->height * 0.25f, m_config->step_length * 5.0f);
+			if (current_local.y >= m_wall->height - top_margin) {
+				if (next_top_edge_steps >= m_config->max_top_edge_steps) {
+					m_boundary_tips.push_back(tip_index);
+					continue;
+				}
+				++next_top_edge_steps;
+			}
+		}
+		// If organic wander still nudges slightly above the top ceiling while top steps remain,
+		// gently deflect downward instead of clamping flat to y = wall.height.
+		if (next_local.y > m_wall->height &&
+				m_config->max_top_edge_steps > 0 &&
+				next_top_edge_steps <= m_config->max_top_edge_steps &&
+				current_local.x >= 0.0f && current_local.x <= m_wall->width) {
+			const float slide_sign = (std::abs(direction_local.x) > 0.05f)
+					? ((direction_local.x > 0.0f) ? 1.0f : -1.0f)
+					: (m_random->random_bool() ? 1.0f : -1.0f);
+			direction_local = godot::Vector2(slide_sign, -0.2f).normalized();
+			next_local = current_local + direction_local * m_config->step_length;
+		}
 		if (!m_wall->contains_local_point(next_local)) {
-			// Tip stepped outside the wall boundary and terminates.
+			// Tip reached a wall boundary cleanly: mark healthy instead of withering.
+			m_boundary_tips.push_back(tip_index);
 			continue;
 		}
 
@@ -248,6 +283,8 @@ GrowthStepResult IvyGrowthSolver::step() {
 
 		const int32_t tip_steps_since_branch =
 				m_steps_since_branch[static_cast<size_t>(tip_index)];
+
+		m_top_edge_steps.push_back(next_top_edge_steps);
 
 		const int32_t next_index = m_graph.add_point(next_point);
 		if (next_index < 0) {
@@ -324,10 +361,26 @@ bool IvyGrowthSolver::compute_step_local_direction(
 	}
 
 	const godot::Vector2 upward_direction(0.0f, 1.0f);
-
+	float effective_upward_weight = m_config->upward_weight;
+	godot::Vector2 top_deflection;
+	if (m_config->max_top_edge_steps > 0) {
+		const float top_margin = std::min(m_wall->height * 0.25f, m_config->step_length * 5.0f);
+		const float dist_to_top = m_wall->height - tip_local.y;
+		if (top_margin > 0.0001f && dist_to_top < top_margin) {
+			const float top_proximity = std::clamp(1.0f - (dist_to_top / top_margin), 0.0f, 1.0f);
+			effective_upward_weight *= (1.0f - top_proximity);
+			const float slide_sign = (std::abs(previous_direction.x) > 0.05f)
+					? ((previous_direction.x > 0.0f) ? 1.0f : -1.0f)
+					: (m_random->random_bool() ? 1.0f : -1.0f);
+			const godot::Vector2 canopy_dir =
+					godot::Vector2(slide_sign, -0.15f * top_proximity).normalized();
+			top_deflection = canopy_dir * (m_config->upward_weight * top_proximity);
+		}
+	}
 	godot::Vector2 combined =
 			previous_direction * m_config->momentum_weight +
-			upward_direction * m_config->upward_weight;
+			upward_direction * effective_upward_weight +
+			top_deflection;
 
 	const godot::Vector2 reference_direction =
 			(combined.length_squared() > 0.000001f) ? combined : previous_direction;
@@ -457,6 +510,7 @@ bool IvyGrowthSolver::try_spawn_branch(
 	}
 
 	m_steps_since_branch.push_back(0);
+	m_top_edge_steps.push_back(0);
 	register_point_in_grid(branch_index, branch_local);
 	update_reached_targets(parent_local, branch_local);
 	next_active_tips.push_back(branch_index);
@@ -477,6 +531,13 @@ bool IvyGrowthSolver::update_thicknesses(const std::vector<int32_t> &active_tips
 	std::vector<int32_t> downstream_tips(static_cast<size_t>(point_count), 0);
 	std::vector<uint8_t> is_active_tip(static_cast<size_t>(point_count), 0);
 
+	std::vector<uint8_t> is_healthy_boundary(static_cast<size_t>(point_count), 0);
+	for (const int32_t boundary_tip : m_boundary_tips) {
+		if (boundary_tip >= 0 && boundary_tip < point_count) {
+			is_healthy_boundary[static_cast<size_t>(boundary_tip)] = 1;
+		}
+	}
+
 	for (const int32_t tip_index : active_tips) {
 		if (tip_index < 0 || tip_index >= point_count) {
 			return false;
@@ -488,7 +549,8 @@ bool IvyGrowthSolver::update_thicknesses(const std::vector<int32_t> &active_tips
 	// Accumulate downstream active-tip support upward toward roots in O(N).
 	for (int32_t i = point_count - 1; i >= 0; --i) {
 		const int32_t support = downstream_tips[static_cast<size_t>(i)];
-		if (support <= 0) {
+		const uint8_t healthy = is_healthy_boundary[static_cast<size_t>(i)];
+		if (support <= 0 && healthy == 0) {
 			continue;
 		}
 
@@ -499,6 +561,9 @@ bool IvyGrowthSolver::update_thicknesses(const std::vector<int32_t> &active_tips
 
 		if (point->parent_index >= 0 && point->parent_index < point_count) {
 			downstream_tips[static_cast<size_t>(point->parent_index)] += support;
+			if (healthy != 0) {
+				is_healthy_boundary[static_cast<size_t>(point->parent_index)] = 1;
+			}
 		}
 	}
 
@@ -521,7 +586,7 @@ bool IvyGrowthSolver::update_thicknesses(const std::vector<int32_t> &active_tips
 						std::sqrt(static_cast<float>(support));
 				updated_thickness = std::min(m_config->max_thickness, point->thickness + growth);
 			}
-		} else {
+		} else if (is_healthy_boundary[static_cast<size_t>(i)] == 0) {
 			if (m_config->wither_rate_per_step > 0.0f) {
 				updated_thickness = std::max(
 						m_config->min_withered_thickness,
@@ -877,6 +942,7 @@ bool IvyGrowthSolver::connect_unreached_targets() {
 			}
 
 			m_steps_since_branch.push_back(0);
+			m_top_edge_steps.push_back(0);
 			register_point_in_grid(spur_index, next_local);
 			update_reached_targets(current_local, next_local);
 

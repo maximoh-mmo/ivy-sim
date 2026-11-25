@@ -111,6 +111,9 @@ public:
 	void set_target_acceptance_radius(float target_acceptance_radius);
 	float get_target_acceptance_radius() const;
 
+	void set_max_top_edge_steps(int32_t max_top_edge_steps);
+	int32_t get_max_top_edge_steps() const;
+
 	// Native conversion for IvyGrowthSolver
 	IvyGrowthConfig to_growth_config() const;
 
@@ -118,6 +121,7 @@ private:
 	int32_t m_seed = 42;
 	int32_t m_start_count = 1;
 	int32_t m_max_steps = 200;
+	int32_t m_max_top_edge_steps = 0;
 
 	float m_initial_thickness = 0.1f;
 	float m_step_length = 0.1f;

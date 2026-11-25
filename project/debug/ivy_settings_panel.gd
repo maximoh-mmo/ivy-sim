@@ -225,6 +225,7 @@ func _add_numeric_row(parent: VBoxContainer, prop: Dictionary) -> void:
 		slider.step = step_val
 		slider.rounded = is_int
 		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.scrollable = false
 		row_vbox.add_child(slider)
 		linked.append(slider)
 

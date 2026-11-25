@@ -59,6 +59,7 @@ private:
 	bool test_step_target_influence_radius_scoping();
 	bool test_connect_unreached_targets_guarantees_reachability();
 	bool test_connect_unreached_targets_fails_when_max_points_exhausted();
+	bool test_step_top_edge_sliding_and_healthy_boundary();
 
 	int m_passed = 0;
 	int m_failed = 0;

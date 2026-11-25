@@ -37,11 +37,14 @@ void IvySettings::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_step_length"), &IvySettings::get_step_length);
 	ClassDB::bind_method(D_METHOD("set_max_points", "max_points"), &IvySettings::set_max_points);
 	ClassDB::bind_method(D_METHOD("get_max_points"), &IvySettings::get_max_points);
+	ClassDB::bind_method(D_METHOD("set_max_top_edge_steps", "max_top_edge_steps"), &IvySettings::set_max_top_edge_steps);
+	ClassDB::bind_method(D_METHOD("get_max_top_edge_steps"), &IvySettings::get_max_top_edge_steps);
 
 	ADD_GROUP("Geometry", "");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "initial_thickness", PROPERTY_HINT_RANGE, "0.001,2.0,0.001,or_greater"), "set_initial_thickness", "get_initial_thickness");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "step_length", PROPERTY_HINT_RANGE, "0.001,2.0,0.001,or_greater"), "set_step_length", "get_step_length");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_points", PROPERTY_HINT_RANGE, "1,100000,1,or_greater"), "set_max_points", "get_max_points");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_top_edge_steps", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_max_top_edge_steps", "get_max_top_edge_steps");
 
 	// Steering
 	ClassDB::bind_method(D_METHOD("set_momentum_weight", "momentum_weight"), &IvySettings::set_momentum_weight);
@@ -201,6 +204,9 @@ float IvySettings::get_target_influence_radius() const { return m_target_influen
 void IvySettings::set_target_acceptance_radius(float target_acceptance_radius) { m_target_acceptance_radius = target_acceptance_radius; }
 float IvySettings::get_target_acceptance_radius() const { return m_target_acceptance_radius; }
 
+void IvySettings::set_max_top_edge_steps(int32_t max_top_edge_steps) { m_max_top_edge_steps = max_top_edge_steps; }
+int32_t IvySettings::get_max_top_edge_steps() const { return m_max_top_edge_steps; }
+
 IvyGrowthConfig IvySettings::to_growth_config() const {
 	constexpr float deg_to_rad = 3.14159265358979323846f / 180.0f;
 
@@ -228,6 +234,8 @@ IvyGrowthConfig IvySettings::to_growth_config() const {
 	config.target_weight = m_target_weight;
 	config.target_influence_radius = m_target_influence_radius;
 	config.target_acceptance_radius = m_target_acceptance_radius;
+	config.max_top_edge_steps = m_max_top_edge_steps;
+
 	return config;
 }
 

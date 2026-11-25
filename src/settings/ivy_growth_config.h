@@ -42,6 +42,7 @@ struct IvyGrowthConfig {
 	float target_weight = 0.0f; /**< Steering weight pulling active tips toward unsatisfied target waypoints (>= 0). */
 	float target_influence_radius = 0.0f; /**< Radius within which tips feel target attraction (0 = global pull). */
 	float target_acceptance_radius = 0.2f; /**< Distance within which a target waypoint is marked satisfied (> 0). */
+	int32_t max_top_edge_steps = 0; /**< Max horizontal steps a tip may trail along the top wall edge (0 = stop immediately). */
 };
 
 } // namespace ivygenerator

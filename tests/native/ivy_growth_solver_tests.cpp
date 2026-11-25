@@ -245,6 +245,13 @@ bool IvyGrowthSolverTests::test_reject_invalid_config() {
 		return false;
 	}
 
+	IvyGrowthConfig negative_top_edge;
+	negative_top_edge.max_top_edge_steps = -1;
+	if (!expect(!solver.initialize(wall, sampler, negative_top_edge, rng, starts),
+				"Negative max_top_edge_steps should be rejected")) {
+		return false;
+	}
+
 	IvyGrowthConfig zero_directional_weights;
 	zero_directional_weights.momentum_weight = 0.0f;
 	zero_directional_weights.upward_weight = 0.0f;
@@ -292,6 +299,13 @@ bool IvyGrowthSolverTests::test_reject_invalid_config() {
 	zero_max_points.max_points = 0;
 	if (!expect(!solver.initialize(wall, sampler, zero_max_points, rng, starts),
 				"Zero max_points should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig negative_max_top_edge_steps;
+	negative_max_top_edge_steps.max_top_edge_steps = -1;
+	if (!expect(!solver.initialize(wall, sampler, negative_max_top_edge_steps, rng, starts),
+				"Negative max_top_edge_steps should be rejected")) {
 		return false;
 	}
 
@@ -923,8 +937,9 @@ bool IvyGrowthSolverTests::test_step_thickness_growth_and_withering() {
 	sampler.set_pixel_data({ 1.0f }, 1, 1);
 
 	const std::vector<Vector3> starts = {
-		Vector3(5.0f, 1.0f, 0.0f),
-		Vector3(5.0f, 9.8f, 0.0f)
+		Vector3(2.0f, 1.0f, 0.0f),
+		Vector3(8.0f, 1.0f, 0.0f),
+		Vector3(8.0f, 1.5f, 0.0f)
 	};
 
 	IvyGrowthConfig config;
@@ -940,6 +955,8 @@ bool IvyGrowthSolverTests::test_step_thickness_growth_and_withering() {
 	config.max_thickness = 0.50f;
 	config.wither_rate_per_step = 0.01f;
 	config.min_withered_thickness = 0.05f;
+	config.crowding_radius = 0.4f;
+	config.max_crowding_neighbors = 1;
 
 	IvyRandom rng(42);
 	IvyGrowthSolver solver;
@@ -953,52 +970,44 @@ bool IvyGrowthSolverTests::test_step_thickness_growth_and_withering() {
 	}
 
 	const IvyGrowthGraph &graph = solver.get_graph();
-	if (!expect(graph.get_point_count() == 3, "Graph should have 2 roots and 1 advanced point")) {
+	if (!expect(graph.get_point_count() == 5, "Graph should have 3 roots and 2 advanced points")) {
 		return false;
 	}
-
 	const IvyPoint *p0 = graph.get_point(0);
 	const IvyPoint *p1 = graph.get_point(1);
-	const IvyPoint *p2 = graph.get_point(2);
-
-	if (!expect(p0 != nullptr && p1 != nullptr && p2 != nullptr, "All 3 points should exist")) {
+	const IvyPoint *p3 = graph.get_point(3);
+	if (!expect(p0 != nullptr && p1 != nullptr && p3 != nullptr, "Points 0, 1, and 3 should exist")) {
 		return false;
 	}
-
 	if (!expect(std::abs(p0->thickness - 0.12f) < 0.0001f,
 				"Active branch root should thicken by thickness_growth_per_step")) {
 		return false;
 	}
-
 	if (!expect(std::abs(p1->thickness - 0.09f) < 0.0001f,
-				"Terminated branch root should wither by wither_rate_per_step")) {
+				"Crowded branch root should wither by wither_rate_per_step")) {
 		return false;
 	}
-
-	if (!expect(std::abs(p2->thickness - 0.10f) < 0.0001f,
+	if (!expect(std::abs(p3->thickness - 0.10f) < 0.0001f,
 				"Active tip should preserve initial_thickness")) {
 		return false;
 	}
-
 	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 2 should advance")) {
 		return false;
 	}
-
 	const IvyPoint *p0_s2 = graph.get_point(0);
 	const IvyPoint *p1_s2 = graph.get_point(1);
-	const IvyPoint *p2_s2 = graph.get_point(2);
 	const IvyPoint *p3_s2 = graph.get_point(3);
-
-	return expect(p0_s2 != nullptr && p1_s2 != nullptr && p2_s2 != nullptr && p3_s2 != nullptr,
-				   "All 4 points should exist after step 2") &&
+	const IvyPoint *p5_s2 = graph.get_point(5);
+	return expect(p0_s2 != nullptr && p1_s2 != nullptr && p3_s2 != nullptr && p5_s2 != nullptr,
+				   "Points 0, 1, 3, and 5 should exist after step 2") &&
 			expect(std::abs(p0_s2->thickness - 0.14f) < 0.0001f,
 					"Root 0 should accumulate further thickening after step 2") &&
 			expect(std::abs(p1_s2->thickness - 0.08f) < 0.0001f,
 					"Root 1 should accumulate further withering after step 2") &&
-			expect(std::abs(p2_s2->thickness - 0.12f) < 0.0001f,
-					"Point 2 should thicken now that it is an internal segment") &&
-			expect(std::abs(p3_s2->thickness - 0.10f) < 0.0001f,
-					"Active tip 3 should preserve initial_thickness");
+			expect(std::abs(p3_s2->thickness - 0.12f) < 0.0001f,
+					"Point 3 should thicken now that it is an internal segment") &&
+			expect(std::abs(p5_s2->thickness - 0.10f) < 0.0001f,
+					"Active tip 5 should preserve initial_thickness");
 }
 
 bool IvyGrowthSolverTests::test_step_pipe_model_and_thickness_clamps() {
@@ -1060,12 +1069,15 @@ bool IvyGrowthSolverTests::test_step_pipe_model_and_thickness_clamps() {
 	clamp_config.max_thickness = 0.13f;
 	clamp_config.wither_rate_per_step = 0.04f;
 	clamp_config.min_withered_thickness = 0.05f;
+	clamp_config.crowding_radius = 0.4f;
+	clamp_config.max_crowding_neighbors = 1;
 
 	IvyRandom rng_clamp(42);
 	IvyGrowthSolver clamp_solver;
 	const std::vector<Vector3> clamp_starts = {
-		Vector3(5.0f, 1.0f, 0.0f),
-		Vector3(5.0f, 9.8f, 0.0f)
+		Vector3(2.0f, 1.0f, 0.0f),
+		Vector3(8.0f, 1.0f, 0.0f),
+		Vector3(8.0f, 1.5f, 0.0f)
 	};
 	if (!expect(clamp_solver.initialize(wall, sampler, clamp_config, rng_clamp, clamp_starts),
 				"Clamp solver initialization should succeed")) {
@@ -1543,6 +1555,65 @@ bool IvyGrowthSolverTests::test_connect_unreached_targets_fails_when_max_points_
 			expect(solver.get_graph().get_point_count() <= 3,
 					"Graph size should not exceed max_points on failure");
 }
+bool IvyGrowthSolverTests::test_step_top_edge_sliding_and_healthy_boundary() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 2.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.initial_thickness = 0.10f;
+	config.step_length = 0.2f;
+	config.momentum_weight = 1.0f;
+	config.upward_weight = 1.0f;
+	config.attraction_weight = 0.0f;
+	config.contour_weight = 0.0f;
+	config.wither_rate_per_step = 0.02f;
+	config.min_withered_thickness = 0.05f;
+	config.max_top_edge_steps = 2;
+
+	IvyRandom rng(42);
+	const std::vector<Vector3> starts = {
+		Vector3(5.0f, 1.85f, 0.0f), // Enters top band [1.5, 2.0] for 2 curved steps
+		Vector3(1.0f, 0.0f, 0.0f) // Keeps stepping so thickness/withering pass runs
+	};
+
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts),
+				"Initialization for top-edge sliding should succeed")) {
+		return false;
+	}
+
+	// Step 1: Root 0 curves laterally inside the top band without exceeding wall.height.
+	solver.step();
+	const IvyPoint *slide_1 = solver.get_graph().get_point(2);
+	if (!expect(slide_1 != nullptr &&
+						std::abs(slide_1->position.x - 5.0f) > 0.05f &&
+						slide_1->position.y <= wall.height,
+				"First top-band step should curve laterally while staying within wall height")) {
+		return false;
+	}
+
+	// Step 2: Second top-band step continues laterally inside the wall.
+	solver.step();
+	const IvyPoint *slide_2 = solver.get_graph().get_point(4);
+	if (!expect(slide_2 != nullptr &&
+						std::abs(slide_2->position.x - slide_1->position.x) > 0.05f &&
+						slide_2->position.y <= wall.height,
+				"Second top-band step should continue curving laterally within wall height")) {
+		return false;
+	}
+
+	// Step 3: Root 0 hits max_top_edge_steps and stops as a healthy boundary tip; only Root 1 advances.
+	solver.step();
+	const IvyPoint *stopped_tip = solver.get_graph().get_point(4);
+	return expect(solver.get_graph().get_point_count() == 7,
+				   "Top-band tip should stop after max_top_edge_steps while Root 1 continues") &&
+			expect(stopped_tip != nullptr && stopped_tip->thickness >= 0.10f - 0.0001f,
+					"Healthy boundary-stopped tip should not wither below initial_thickness");
+}
 
 bool IvyGrowthSolverTests::run_all() {
 	m_passed = 0;
@@ -1636,6 +1707,9 @@ bool IvyGrowthSolverTests::run_all() {
 
 	run_test("Connect unreached targets fails when max_points exhausted",
 			&IvyGrowthSolverTests::test_connect_unreached_targets_fails_when_max_points_exhausted);
+
+	run_test("Step top edge sliding and healthy boundary",
+			&IvyGrowthSolverTests::test_step_top_edge_sliding_and_healthy_boundary);
 
 	std::cout << "\n=== Test Summary ===\n";
 	std::cout << "Passed: " << m_passed << '\n';

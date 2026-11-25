@@ -14,6 +14,9 @@ var _generator := IvyGenerator.new()
 var _attraction_image: Image
 var _ivy_mesh_instance: MeshInstance3D
 var _settings_panel: IvySettingsPanel
+var _camera: Camera3D
+var _target_mesh_instance: MeshInstance3D
+var _target_points := PackedVector3Array()
 
 func _ready() -> void:
 	if settings == null:
@@ -23,15 +26,6 @@ func _ready() -> void:
 	_setup_scene()
 	_setup_ui()
 	_regenerate()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
-		settings.seed += 1
-		if _settings_panel != null:
-			_settings_panel.sync_from_settings()
-		_regenerate()
-
 
 func _create_default_settings() -> IvySettings:
 	var s := IvySettings.new()
@@ -57,6 +51,9 @@ func _create_default_settings() -> IvySettings:
 	s.crowding_radius = 0.25
 	s.avoidance_weight = 0.8
 	s.max_crowding_neighbors = 5
+	s.target_weight = 0.6
+	s.target_acceptance_radius = 0.2
+	s.max_top_edge_steps = 15
 	return s
 
 
@@ -95,11 +92,11 @@ func _setup_scene() -> void:
 	add_child(light)
 
 	# Camera centered on the wall
-	var camera := Camera3D.new()
+	_camera = Camera3D.new()
 	var view_center := Vector3(wall_width * 0.35, wall_height * 0.5, 0.0)
-	camera.position = Vector3(view_center.x, view_center.y, maxf(wall_width, wall_height) * 1.25)
-	add_child(camera)
-	camera.look_at(view_center, Vector3.UP)
+	_camera.position = Vector3(view_center.x, view_center.y, maxf(wall_width, wall_height) * 1.25)
+	add_child(_camera)
+	_camera.look_at(view_center, Vector3.UP)
 
 	# Planar wall mesh aligned with IvyWall (bottom-left at origin, facing +Z)
 	var wall_mesh := QuadMesh.new()
@@ -125,6 +122,9 @@ func _setup_scene() -> void:
 	_ivy_mesh_instance = MeshInstance3D.new()
 	_ivy_mesh_instance.material_override = ivy_mat
 	add_child(_ivy_mesh_instance)
+	_target_mesh_instance = MeshInstance3D.new()
+	_target_mesh_instance.material_override = ivy_mat
+	add_child(_target_mesh_instance)
 
 func _setup_ui() -> void:
 	_settings_panel = IvySettingsPanel.new()
@@ -146,6 +146,7 @@ func _regenerate() -> void:
 	_generator.settings = settings
 	_generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, wall_width, wall_height, uv_scale, Vector2.ZERO)
 	_generator.set_attraction_image(_attraction_image)
+	_generator.set_target_points(_target_points)
 
 	var start_us := Time.get_ticks_usec()
 	if not _generator.generate():
@@ -163,7 +164,72 @@ func _regenerate() -> void:
 		settings.initial_thickness
 	)
 
-	var status := "Seed: %d | Points: %d | %.2f ms" % [settings.seed, _generator.get_point_count(), elapsed_ms]
+	var reached_flags: Array[bool] = []
+	for i in range(_target_points.size()):
+		reached_flags.append(_generator.is_target_reached(i))
+
+	_target_mesh_instance.mesh = IvyDebugRenderer.build_target_markers_mesh(
+		_target_points,
+		reached_flags,
+		settings.target_acceptance_radius,
+		Vector3.BACK
+	)
+	
+	var status := "Seed: %d | Points: %d | Targets: %d/%d | %.2f ms" % [
+		settings.seed,
+		_generator.get_point_count(),
+		_generator.get_reached_target_count(),
+		_generator.get_target_count(),
+		elapsed_ms
+	]
 	if _settings_panel != null:
 		_settings_panel.set_status(status)
 	print(status)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_SPACE:
+			settings.seed += 1
+			if _settings_panel != null:
+				_settings_panel.sync_from_settings()
+			_regenerate()
+		elif event.keycode == KEY_C and not _target_points.is_empty():
+			_target_points.clear()
+			_regenerate()
+	elif event is InputEventMouseButton and event.pressed and _camera != null:
+		var hit: Variant = _raycast_wall(event.position)
+		if hit == null:
+			return
+		var hit_pos: Vector3 = hit
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_target_points.append(hit_pos)
+			_regenerate()
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			_remove_nearest_target(hit_pos)
+			_regenerate()
+
+
+func _raycast_wall(screen_pos: Vector2) -> Variant:
+	var ray_origin := _camera.project_ray_origin(screen_pos)
+	var ray_dir := _camera.project_ray_normal(screen_pos)
+	var wall_plane := Plane(Vector3.BACK, 0.0)
+	var hit: Variant = wall_plane.intersects_ray(ray_origin, ray_dir)
+	if hit == null:
+		return null
+	var hit_pos: Vector3 = hit
+	if hit_pos.x < 0.0 or hit_pos.x > wall_width or hit_pos.y < 0.0 or hit_pos.y > wall_height:
+		return null
+	return Vector3(hit_pos.x, hit_pos.y, 0.0)
+
+
+func _remove_nearest_target(point: Vector3) -> void:
+	var best_idx := -1
+	var max_dist := maxf(settings.target_acceptance_radius, 0.35)
+	var best_dist_sq := max_dist * max_dist
+	for i in range(_target_points.size()):
+		var d_sq := _target_points[i].distance_squared_to(point)
+		if d_sq <= best_dist_sq:
+			best_dist_sq = d_sq
+			best_idx = i
+	if best_idx >= 0:
+		_target_points.remove_at(best_idx)
