@@ -39,6 +39,9 @@ struct IvyGrowthConfig {
 	float crowding_radius = 0.0f; /**< Local spatial radius for self-avoidance and crowding checks (0 = disabled). */
 	float avoidance_weight = 0.0f; /**< Steering weight repelling tips from nearby unrelated vines (>= 0). */
 	int32_t max_crowding_neighbors = 0; /**< Neighbor count within crowding_radius that terminates a tip (0 = disabled). */
+	float target_weight = 0.0f; /**< Steering weight pulling active tips toward unsatisfied target waypoints (>= 0). */
+	float target_influence_radius = 0.0f; /**< Radius within which tips feel target attraction (0 = global pull). */
+	float target_acceptance_radius = 0.2f; /**< Distance within which a target waypoint is marked satisfied (> 0). */
 };
 
 } // namespace ivygenerator

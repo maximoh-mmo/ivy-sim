@@ -22,6 +22,7 @@
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/vector3.hpp>
+#include <vector>
 
 /**
  * @file ivy_generator.h
@@ -108,6 +109,23 @@ public:
 	void clear_start_points();
 
 	/**
+	 * @brief Defines optional target waypoints on the wall plane to steer nearby growth.
+	 * @param target_points Array of 3D target positions on the wall surface.
+	 */
+	void set_target_points(const godot::PackedVector3Array &target_points);
+
+	/**
+	 * @brief Retrieves the configured target waypoints.
+	 * @return Array of configured 3D target positions.
+	 */
+	godot::PackedVector3Array get_target_points() const;
+
+	/**
+	 * @brief Clears all configured target waypoints.
+	 */
+	void clear_target_points();
+
+	/**
 	 * @brief Executes procedural ivy simulation and populates graph buffers.
 	 * @return True on successful simulation completion, false on error.
 	 */
@@ -137,6 +155,25 @@ public:
 	 */
 	godot::PackedInt32Array get_point_parent_indices() const;
 
+	/**
+	 * @brief Returns the number of target waypoints evaluated in the last generate() run.
+	 * @return Target count from the last successful generate(), or 0 if none/failed.
+	 */
+	int32_t get_target_count() const;
+
+	/**
+	 * @brief Checks whether a target waypoint was satisfied within acceptance radius in the last generate() run.
+	 * @param target_index Zero-based target index.
+	 * @return True if valid index and target was reached.
+	 */
+	bool is_target_reached(int32_t target_index) const;
+
+	/**
+	 * @brief Returns the total number of target waypoints reached in the last generate() run.
+	 * @return Count of satisfied targets.
+	 */
+	int32_t get_reached_target_count() const;
+
 private:
 	void clear_results();
 	godot::Ref<IvySettings> m_settings;
@@ -146,8 +183,10 @@ private:
 	IvyRandom m_random;
 	IvyGrowthSolver m_solver;
 	godot::PackedVector3Array m_explicit_start_points;
+	godot::PackedVector3Array m_target_points;
 	godot::PackedVector3Array m_positions;
 	godot::PackedFloat32Array m_thicknesses;
 	godot::PackedInt32Array m_parent_indices;
+	std::vector<uint8_t> m_target_reached;
 };
 } // namespace ivygenerator

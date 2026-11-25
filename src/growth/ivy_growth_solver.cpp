@@ -28,7 +28,8 @@ bool IvyGrowthSolver::initialize(
 		const IvySurfaceSampler &surface_sampler,
 		const IvyGrowthConfig &config,
 		IvyRandom &random,
-		const std::vector<godot::Vector3> &start_points) {
+		const std::vector<godot::Vector3> &start_points,
+		const std::vector<godot::Vector3> &target_points) {
 	m_graph.clear();
 	m_active_tips.clear();
 	m_steps_since_branch.clear();
@@ -42,6 +43,8 @@ bool IvyGrowthSolver::initialize(
 	m_grid_cols = 0;
 	m_grid_rows = 0;
 	m_grid_cell_size = 0.0f;
+	m_target_points_local.clear();
+	m_target_reached.clear();
 
 	if (!wall.is_valid()) {
 		return false;
@@ -126,6 +129,18 @@ bool IvyGrowthSolver::initialize(
 		return false;
 	}
 
+	if (!std::isfinite(config.target_weight) || config.target_weight < 0.0f ||
+			!std::isfinite(config.target_influence_radius) || config.target_influence_radius < 0.0f ||
+			!std::isfinite(config.target_acceptance_radius) || config.target_acceptance_radius <= 0.0f) {
+		return false;
+	}
+
+	for (const godot::Vector3 &target_point : target_points) {
+		if (!wall.is_on_surface(target_point)) {
+			return false;
+		}
+	}
+
 	if (config.crowding_radius > 0.0f) {
 		const float max_extent = std::max(wall.width, wall.height);
 		m_grid_cell_size = std::max(config.crowding_radius, max_extent / 256.0f);
@@ -149,16 +164,30 @@ bool IvyGrowthSolver::initialize(
 			m_local_positions.clear();
 			m_grid_heads.clear();
 			m_grid_next.clear();
+			m_target_points_local.clear();
+			m_target_reached.clear();
 			return false;
 		}
 		m_active_tips.push_back(root_index);
 		m_steps_since_branch.push_back(0);
 		register_point_in_grid(root_index, wall.world_to_local(start_point));
 	}
+
+	m_target_points_local.reserve(target_points.size());
+	for (const godot::Vector3 &target_point : target_points) {
+		m_target_points_local.push_back(wall.world_to_local(target_point));
+	}
+	m_target_reached.assign(target_points.size(), 0);
+
 	m_wall = &wall;
 	m_surface_sampler = &surface_sampler;
 	m_config = &config;
 	m_random = &random;
+
+	for (const godot::Vector2 &root_local : m_local_positions) {
+		update_reached_targets(root_local, root_local);
+	}
+
 	return true;
 }
 
@@ -227,6 +256,7 @@ GrowthStepResult IvyGrowthSolver::step() {
 
 		m_steps_since_branch.push_back(tip_steps_since_branch + 1);
 		register_point_in_grid(next_index, next_local);
+		update_reached_targets(current_local, next_local);
 		next_active_tips.push_back(next_index);
 
 		if (tip_steps_since_branch >= m_config->min_branch_interval) {
@@ -315,6 +345,9 @@ bool IvyGrowthSolver::compute_step_local_direction(
 
 	if (m_config->avoidance_weight > 0.0f && m_config->crowding_radius > 0.0f) {
 		combined += compute_avoidance_vector(tip_index, tip_local) * m_config->avoidance_weight;
+	}
+	if (m_config->target_weight > 0.0f && !m_target_points_local.empty()) {
+		combined += compute_target_vector(tip_local) * m_config->target_weight;
 	}
 	if (m_config->random_weight > 0.0f) {
 		constexpr float half_pi = 1.57079632679f;
@@ -425,6 +458,7 @@ bool IvyGrowthSolver::try_spawn_branch(
 
 	m_steps_since_branch.push_back(0);
 	register_point_in_grid(branch_index, branch_local);
+	update_reached_targets(parent_local, branch_local);
 	next_active_tips.push_back(branch_index);
 	out_branched = true;
 	return true;
@@ -641,4 +675,221 @@ int32_t IvyGrowthSolver::count_crowding_neighbors(
 
 	return count;
 }
+
+int32_t IvyGrowthSolver::get_target_count() const {
+	return static_cast<int32_t>(m_target_points_local.size());
+}
+
+bool IvyGrowthSolver::is_target_reached(int32_t target_index) const {
+	if (target_index < 0 || target_index >= static_cast<int32_t>(m_target_reached.size())) {
+		return false;
+	}
+	return m_target_reached[static_cast<size_t>(target_index)] != 0;
+}
+
+int32_t IvyGrowthSolver::get_reached_target_count() const {
+	int32_t count = 0;
+	for (const uint8_t reached : m_target_reached) {
+		if (reached != 0) {
+			++count;
+		}
+	}
+	return count;
+}
+
+godot::Vector2 IvyGrowthSolver::compute_target_vector(const godot::Vector2 &tip_local) const {
+	if (m_config->target_weight <= 0.0f || m_target_points_local.empty()) {
+		return godot::Vector2();
+	}
+
+	const bool use_radius = m_config->target_influence_radius > 0.0f;
+	const float max_dist_sq = use_radius
+			? (m_config->target_influence_radius * m_config->target_influence_radius)
+			: 0.0f;
+
+	bool found = false;
+	float best_dist_sq = 0.0f;
+	godot::Vector2 best_delta;
+
+	for (size_t i = 0; i < m_target_points_local.size(); ++i) {
+		if (m_target_reached[i] != 0) {
+			continue;
+		}
+
+		const godot::Vector2 delta = m_target_points_local[i] - tip_local;
+		const float dist_sq = delta.length_squared();
+		if (use_radius && dist_sq > max_dist_sq) {
+			continue;
+		}
+
+		if (!found || dist_sq < best_dist_sq) {
+			found = true;
+			best_dist_sq = dist_sq;
+			best_delta = delta;
+		}
+	}
+
+	if (!found || best_dist_sq <= 0.000001f) {
+		return godot::Vector2();
+	}
+
+	const float dist = std::sqrt(best_dist_sq);
+	const godot::Vector2 dir = best_delta / dist;
+	const float strength = use_radius
+			? std::clamp(1.0f - (dist / m_config->target_influence_radius), 0.0f, 1.0f)
+			: 1.0f;
+	return dir * strength;
+}
+
+void IvyGrowthSolver::update_reached_targets(
+		const godot::Vector2 &segment_start,
+		const godot::Vector2 &segment_end) {
+	if (m_target_points_local.empty()) {
+		return;
+	}
+
+	const float accept_sq = m_config->target_acceptance_radius * m_config->target_acceptance_radius;
+	const godot::Vector2 seg = segment_end - segment_start;
+	const float seg_len_sq = seg.length_squared();
+
+	for (size_t i = 0; i < m_target_points_local.size(); ++i) {
+		if (m_target_reached[i] != 0) {
+			continue;
+		}
+
+		const godot::Vector2 target = m_target_points_local[i];
+		godot::Vector2 closest = segment_end;
+		if (seg_len_sq > 0.000001f) {
+			const float t = std::clamp((target - segment_start).dot(seg) / seg_len_sq, 0.0f, 1.0f);
+			closest = segment_start + seg * t;
+		}
+
+		if ((target - closest).length_squared() <= accept_sq) {
+			m_target_reached[i] = 1;
+		}
+	}
+}
+
+bool IvyGrowthSolver::connect_unreached_targets() {
+	if (m_wall == nullptr || m_surface_sampler == nullptr ||
+			m_config == nullptr || m_random == nullptr) {
+		return false;
+	}
+
+	if (m_target_points_local.empty()) {
+		return true;
+	}
+
+	for (size_t target_idx = 0; target_idx < m_target_points_local.size(); ++target_idx) {
+		if (m_target_reached[target_idx] != 0) {
+			continue;
+		}
+
+		const godot::Vector2 target_local = m_target_points_local[target_idx];
+		int32_t best_index = -1;
+		float best_dist_sq = 0.0f;
+
+		for (size_t i = 0; i < m_local_positions.size(); ++i) {
+			const float dist_sq = (m_local_positions[i] - target_local).length_squared();
+			if (best_index < 0 || dist_sq < best_dist_sq) {
+				best_index = static_cast<int32_t>(i);
+				best_dist_sq = dist_sq;
+			}
+		}
+
+		if (best_index < 0) {
+			return false;
+		}
+
+		int32_t current_index = best_index;
+		godot::Vector2 current_local = m_local_positions[static_cast<size_t>(current_index)];
+		const float initial_dist = (target_local - current_local).length();
+		const int32_t max_spur_steps =
+				static_cast<int32_t>(std::ceil(initial_dist / m_config->step_length)) * 3 + 16;
+
+		for (int32_t spur_step = 0; spur_step < max_spur_steps && m_target_reached[target_idx] == 0; ++spur_step) {
+			const godot::Vector2 to_target = target_local - current_local;
+			const float dist = to_target.length();
+			if (dist <= m_config->target_acceptance_radius) {
+				m_target_reached[target_idx] = 1;
+				break;
+			}
+
+			if (m_graph.get_point_count() >= m_config->max_points) {
+				return false;
+			}
+
+			const godot::Vector2 target_dir = to_target / dist;
+			godot::Vector2 dir = target_dir;
+
+			if (dist > m_config->step_length) {
+				godot::Vector2 combined = target_dir * 2.0f;
+
+				const IvyPoint *tip_ptr = m_graph.get_point(current_index);
+				if (tip_ptr == nullptr) {
+					return false;
+				}
+
+				godot::Vector2 prev_dir;
+				if (!compute_previous_local_direction(*tip_ptr, current_local, prev_dir)) {
+					return false;
+				}
+				if (prev_dir.dot(target_dir) > 0.0f) {
+					combined += prev_dir * 0.4f;
+				}
+
+				godot::Vector2 attraction_dir;
+				godot::Vector2 contour_dir;
+				compute_attraction_vectors(current_local, target_dir, attraction_dir, contour_dir);
+				godot::Vector2 surface_pull =
+						attraction_dir * m_config->attraction_weight +
+						contour_dir * m_config->contour_weight;
+				if (surface_pull.length_squared() > 0.16f) {
+					surface_pull = surface_pull.normalized() * 0.4f;
+				}
+				combined += surface_pull;
+
+				if (m_config->random_weight > 0.0f) {
+					const float jitter_angle = m_random->random_float(-0.5f, 0.5f);
+					combined += target_dir.rotated(jitter_angle) * 0.25f;
+				}
+
+				dir = combined.normalized();
+			}
+
+			const float step_dist = std::min(m_config->step_length, dist);
+			godot::Vector2 next_local = current_local + dir * step_dist;
+
+			if (!m_wall->contains_local_point(next_local)) {
+				next_local = current_local + target_dir * step_dist;
+				next_local.x = std::clamp(next_local.x, 0.0f, m_wall->width);
+				next_local.y = std::clamp(next_local.y, 0.0f, m_wall->height);
+			}
+
+			IvyPoint spur_point;
+			spur_point.position = m_wall->local_to_world(next_local);
+			spur_point.thickness = m_config->initial_thickness;
+			spur_point.parent_index = current_index;
+
+			const int32_t spur_index = m_graph.add_point(spur_point);
+			if (spur_index < 0) {
+				return false;
+			}
+
+			m_steps_since_branch.push_back(0);
+			register_point_in_grid(spur_index, next_local);
+			update_reached_targets(current_local, next_local);
+
+			current_index = spur_index;
+			current_local = next_local;
+		}
+
+		if (m_target_reached[target_idx] == 0) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 } // namespace ivygenerator

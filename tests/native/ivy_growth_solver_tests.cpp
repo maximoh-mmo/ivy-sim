@@ -339,6 +339,27 @@ bool IvyGrowthSolverTests::test_reject_invalid_config() {
 		return false;
 	}
 
+	IvyGrowthConfig negative_target_weight;
+	negative_target_weight.target_weight = -0.1f;
+	if (!expect(!solver.initialize(wall, sampler, negative_target_weight, rng, starts),
+				"Negative target_weight should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig negative_target_influence;
+	negative_target_influence.target_influence_radius = -0.1f;
+	if (!expect(!solver.initialize(wall, sampler, negative_target_influence, rng, starts),
+				"Negative target_influence_radius should be rejected")) {
+		return false;
+	}
+
+	IvyGrowthConfig zero_target_acceptance;
+	zero_target_acceptance.target_acceptance_radius = 0.0f;
+	if (!expect(!solver.initialize(wall, sampler, zero_target_acceptance, rng, starts),
+				"Zero target_acceptance_radius should be rejected")) {
+		return false;
+	}
+
 	IvyGrowthConfig too_few_max_points;
 	too_few_max_points.max_points = 1;
 	const std::vector<Vector3> two_starts = {
@@ -1271,6 +1292,258 @@ bool IvyGrowthSolverTests::test_step_crowding_termination() {
 	return expect(!root3_has_child, "Tip 3 should terminate due to exceeding max_crowding_neighbors");
 }
 
+bool IvyGrowthSolverTests::test_reject_invalid_target_points() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	IvyRandom rng(42);
+	const std::vector<Vector3> starts = { Vector3(5.0f, 0.0f, 0.0f) };
+	const std::vector<Vector3> invalid_targets = { Vector3(5.0f, 2.0f, 1.0f) };
+
+	IvyGrowthSolver solver;
+	return expect(!solver.initialize(wall, sampler, config, rng, starts, invalid_targets),
+				   "Off-wall target point should be rejected") &&
+			expect(solver.get_graph().get_point_count() == 0,
+					"Failed initialization with invalid target should leave graph empty") &&
+			expect(solver.get_target_count() == 0,
+					"Failed initialization with invalid target should leave target count at 0");
+}
+
+bool IvyGrowthSolverTests::test_step_target_steering_and_acceptance_continues_growth() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.momentum_weight = 0.5f;
+	config.upward_weight = 0.5f;
+	config.attraction_weight = 0.0f;
+	config.contour_weight = 0.0f;
+	config.target_weight = 2.0f;
+	config.target_influence_radius = 0.0f;
+	config.target_acceptance_radius = 0.35f;
+
+	IvyRandom rng(42);
+	const std::vector<Vector3> starts = { Vector3(5.0f, 0.0f, 0.0f) };
+	const std::vector<Vector3> targets = { Vector3(6.0f, 1.5f, 0.0f) };
+
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(wall, sampler, config, rng, starts, targets),
+				"Initialization with target waypoint should succeed")) {
+		return false;
+	}
+
+	if (!expect(solver.get_target_count() == 1, "Target count should be 1") ||
+			!expect(solver.get_reached_target_count() == 0, "Initial reached target count should be 0") ||
+			!expect(!solver.is_target_reached(0), "Initial target should not be marked reached")) {
+		return false;
+	}
+
+	if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Step 1 should advance")) {
+		return false;
+	}
+
+	const IvyPoint *first_tip = solver.get_graph().get_point(1);
+	if (!expect(first_tip != nullptr && first_tip->position.x > 5.0f,
+				"Step 1 should deflect rightward toward target waypoint")) {
+		return false;
+	}
+
+	for (int step_idx = 2; step_idx <= 6; ++step_idx) {
+		if (solver.is_target_reached(0)) {
+			break;
+		}
+		if (!expect(solver.step() == GrowthStepResult::ADVANCED, "Target approach step should advance")) {
+			return false;
+		}
+	}
+
+	if (!expect(solver.is_target_reached(0), "Target should be marked reached within 6 steps") ||
+			!expect(solver.get_reached_target_count() == 1, "Reached target count should be 1") ||
+			!expect(!solver.is_finished(), "Vine should remain active after satisfying soft waypoint")) {
+		return false;
+	}
+
+	const int32_t count_before_extra_step = solver.get_graph().get_point_count();
+	return expect(solver.step() == GrowthStepResult::ADVANCED,
+				   "Additional step after target acceptance should advance") &&
+			expect(solver.get_graph().get_point_count() > count_before_extra_step,
+					"Vine should continue adding points after reaching target");
+}
+
+bool IvyGrowthSolverTests::test_step_target_influence_radius_scoping() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.upward_weight = 1.0f;
+	config.momentum_weight = 0.0f;
+	config.attraction_weight = 0.0f;
+	config.contour_weight = 0.0f;
+	config.target_weight = 5.0f;
+	config.target_influence_radius = 1.5f;
+
+	const std::vector<Vector3> starts = { Vector3(5.0f, 0.0f, 0.0f) };
+
+	// Far target outside influence radius (distance > 4.0 > 1.5): no lateral pull.
+	IvyRandom rng_far(42);
+	IvyGrowthSolver solver_far;
+	if (!expect(solver_far.initialize(wall, sampler, config, rng_far, starts, { Vector3(9.0f, 0.5f, 0.0f) }),
+				"Initialization with far target should succeed")) {
+		return false;
+	}
+	if (!expect(solver_far.step() == GrowthStepResult::ADVANCED, "Far target step should advance")) {
+		return false;
+	}
+	const IvyPoint *far_tip = solver_far.get_graph().get_point(1);
+	if (!expect(far_tip != nullptr && std::abs(far_tip->position.x - 5.0f) < 0.0001f,
+				"Target outside influence radius should produce no lateral deflection")) {
+		return false;
+	}
+
+	// Nearby target inside influence radius (distance ~1.12 < 1.5): pulls tip rightward.
+	IvyRandom rng_near(42);
+	IvyGrowthSolver solver_near;
+	if (!expect(solver_near.initialize(wall, sampler, config, rng_near, starts, { Vector3(6.0f, 0.5f, 0.0f) }),
+				"Initialization with nearby target should succeed")) {
+		return false;
+	}
+	if (!expect(solver_near.step() == GrowthStepResult::ADVANCED, "Near target step should advance")) {
+		return false;
+	}
+	const IvyPoint *near_tip = solver_near.get_graph().get_point(1);
+	return expect(near_tip != nullptr && near_tip->position.x > 5.05f,
+			"Target inside influence radius should pull tip rightward");
+}
+
+bool IvyGrowthSolverTests::test_connect_unreached_targets_guarantees_reachability() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.step_length = 0.4f;
+	config.random_weight = 0.3f;
+	config.target_weight = 0.0f;
+	config.target_acceptance_radius = 0.25f;
+
+	const std::vector<Vector3> starts = { Vector3(2.0f, 0.0f, 0.0f) };
+	const std::vector<Vector3> targets = {
+		Vector3(8.5f, 2.0f, 0.0f),
+		Vector3(1.0f, 0.5f, 0.0f)
+	};
+
+	auto run_solver = [&](IvyRandom &rng, IvyGrowthSolver &solver) -> bool {
+		if (!solver.initialize(wall, sampler, config, rng, starts, targets)) {
+			return false;
+		}
+		for (int i = 0; i < 5; ++i) {
+			if (solver.step() != GrowthStepResult::ADVANCED) {
+				return false;
+			}
+		}
+		return true;
+	};
+
+	IvyRandom rng_a(42);
+	IvyGrowthSolver solver_a;
+	if (!expect(run_solver(rng_a, solver_a), "Phase 1 steps should succeed")) {
+		return false;
+	}
+
+	if (!expect(solver_a.get_reached_target_count() == 0,
+				"Targets should still be unreached before Phase 2")) {
+		return false;
+	}
+
+	if (!expect(solver_a.connect_unreached_targets(), "Phase 2 connect_unreached_targets should succeed") ||
+			!expect(solver_a.get_reached_target_count() == 2, "Both targets should be reached") ||
+			!expect(solver_a.is_target_reached(0) && solver_a.is_target_reached(1),
+					"Both target indices should report reached")) {
+		return false;
+	}
+
+	const IvyGrowthGraph &graph_a = solver_a.get_graph();
+	for (int32_t i = 0; i < graph_a.get_point_count(); ++i) {
+		const IvyPoint *pt = graph_a.get_point(i);
+		if (!expect(pt != nullptr && wall.is_on_surface(pt->position),
+					"All Phase 2 spur points should stay on the wall surface")) {
+			return false;
+		}
+	}
+
+	// Verify determinism across identical seed runs.
+	IvyRandom rng_b(42);
+	IvyGrowthSolver solver_b;
+	if (!expect(run_solver(rng_b, solver_b) && solver_b.connect_unreached_targets(),
+				"Second identical seed run should succeed")) {
+		return false;
+	}
+
+	const IvyGrowthGraph &graph_b = solver_b.get_graph();
+	if (!expect(graph_a.get_point_count() == graph_b.get_point_count(),
+				"Phase 2 point count should be deterministic")) {
+		return false;
+	}
+
+	for (int32_t i = 0; i < graph_a.get_point_count(); ++i) {
+		if (!expect(graph_a.get_point(i)->position.is_equal_approx(graph_b.get_point(i)->position),
+					"Phase 2 spur positions should match deterministically")) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool IvyGrowthSolverTests::test_connect_unreached_targets_fails_when_max_points_exhausted() {
+	IvyWall wall;
+	wall.width = 10.0f;
+	wall.height = 10.0f;
+
+	IvySurfaceSampler sampler;
+	sampler.set_pixel_data({ 1.0f }, 1, 1);
+
+	IvyGrowthConfig config;
+	config.step_length = 0.5f;
+	config.max_points = 3;
+
+	IvyRandom rng(42);
+	IvyGrowthSolver solver;
+	if (!expect(solver.initialize(
+						wall,
+						sampler,
+						config,
+						rng,
+						{ Vector3(1.0f, 0.0f, 0.0f) },
+						{ Vector3(9.0f, 9.0f, 0.0f) }),
+				"Initialization with far target and tight max_points should succeed")) {
+		return false;
+	}
+
+	return expect(!solver.connect_unreached_targets(),
+				   "connect_unreached_targets should fail when max_points is exhausted") &&
+			expect(solver.get_graph().get_point_count() <= 3,
+					"Graph size should not exceed max_points on failure");
+}
+
 bool IvyGrowthSolverTests::run_all() {
 	m_passed = 0;
 	m_failed = 0;
@@ -1348,6 +1621,21 @@ bool IvyGrowthSolverTests::run_all() {
 
 	run_test("Step crowding termination",
 			&IvyGrowthSolverTests::test_step_crowding_termination);
+
+	run_test("Reject invalid target points",
+			&IvyGrowthSolverTests::test_reject_invalid_target_points);
+
+	run_test("Step target steering and acceptance continues growth",
+			&IvyGrowthSolverTests::test_step_target_steering_and_acceptance_continues_growth);
+
+	run_test("Step target influence radius scoping",
+			&IvyGrowthSolverTests::test_step_target_influence_radius_scoping);
+
+	run_test("Connect unreached targets guarantees reachability",
+			&IvyGrowthSolverTests::test_connect_unreached_targets_guarantees_reachability);
+
+	run_test("Connect unreached targets fails when max_points exhausted",
+			&IvyGrowthSolverTests::test_connect_unreached_targets_fails_when_max_points_exhausted);
 
 	std::cout << "\n=== Test Summary ===\n";
 	std::cout << "Passed: " << m_passed << '\n';

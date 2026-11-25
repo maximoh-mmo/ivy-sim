@@ -101,6 +101,16 @@ public:
 	void set_max_crowding_neighbors(int32_t max_crowding_neighbours);
 	int32_t get_max_crowding_neighbors() const;
 
+	// Target waypoints
+	void set_target_weight(float target_weight);
+	float get_target_weight() const;
+
+	void set_target_influence_radius(float target_influence_radius);
+	float get_target_influence_radius() const;
+
+	void set_target_acceptance_radius(float target_acceptance_radius);
+	float get_target_acceptance_radius() const;
+
 	// Native conversion for IvyGrowthSolver
 	IvyGrowthConfig to_growth_config() const;
 
@@ -133,6 +143,10 @@ private:
 	float m_crowding_radius = 0.0f;
 	float m_avoidance_weight = 0.0f;
 	int32_t m_max_crowding_neighbors = 0;
+
+	float m_target_weight = 0.0f;
+	float m_target_influence_radius = 0.0f;
+	float m_target_acceptance_radius = 0.2f;
 };
 
 } // namespace ivygenerator

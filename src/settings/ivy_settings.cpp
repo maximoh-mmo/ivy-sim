@@ -108,6 +108,19 @@ void IvySettings::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "crowding_radius", PROPERTY_HINT_RANGE, "0.0,2.0,0.01,or_greater"), "set_crowding_radius", "get_crowding_radius");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "avoidance_weight", PROPERTY_HINT_RANGE, "0.0,10.0,0.01,or_greater"), "set_avoidance_weight", "get_avoidance_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_crowding_neighbors", PROPERTY_HINT_RANGE, "0,32,1,or_greater"), "set_max_crowding_neighbors", "get_max_crowding_neighbors");
+
+	// Targets
+	ClassDB::bind_method(D_METHOD("set_target_weight", "target_weight"), &IvySettings::set_target_weight);
+	ClassDB::bind_method(D_METHOD("get_target_weight"), &IvySettings::get_target_weight);
+	ClassDB::bind_method(D_METHOD("set_target_influence_radius", "target_influence_radius"), &IvySettings::set_target_influence_radius);
+	ClassDB::bind_method(D_METHOD("get_target_influence_radius"), &IvySettings::get_target_influence_radius);
+	ClassDB::bind_method(D_METHOD("set_target_acceptance_radius", "target_acceptance_radius"), &IvySettings::set_target_acceptance_radius);
+	ClassDB::bind_method(D_METHOD("get_target_acceptance_radius"), &IvySettings::get_target_acceptance_radius);
+
+	ADD_GROUP("Targets", "");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "target_weight", PROPERTY_HINT_RANGE, "0.0,10.0,0.01,or_greater"), "set_target_weight", "get_target_weight");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "target_influence_radius", PROPERTY_HINT_RANGE, "0.0,5.0,0.01,or_greater"), "set_target_influence_radius", "get_target_influence_radius");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "target_acceptance_radius", PROPERTY_HINT_RANGE, "0.01,2.0,0.01,or_greater"), "set_target_acceptance_radius", "get_target_acceptance_radius");
 }
 
 void IvySettings::set_seed(int32_t seed) { m_seed = seed; }
@@ -179,6 +192,15 @@ int32_t IvySettings::get_max_crowding_neighbors() const { return m_max_crowding_
 void IvySettings::set_gradient_saturation(float gradient_saturation) { m_gradient_saturation = gradient_saturation; }
 float IvySettings::get_gradient_saturation() const { return m_gradient_saturation; }
 
+void IvySettings::set_target_weight(float target_weight) { m_target_weight = target_weight; }
+float IvySettings::get_target_weight() const { return m_target_weight; }
+
+void IvySettings::set_target_influence_radius(float target_influence_radius) { m_target_influence_radius = target_influence_radius; }
+float IvySettings::get_target_influence_radius() const { return m_target_influence_radius; }
+
+void IvySettings::set_target_acceptance_radius(float target_acceptance_radius) { m_target_acceptance_radius = target_acceptance_radius; }
+float IvySettings::get_target_acceptance_radius() const { return m_target_acceptance_radius; }
+
 IvyGrowthConfig IvySettings::to_growth_config() const {
 	constexpr float deg_to_rad = 3.14159265358979323846f / 180.0f;
 
@@ -203,6 +225,9 @@ IvyGrowthConfig IvySettings::to_growth_config() const {
 	config.crowding_radius = m_crowding_radius;
 	config.avoidance_weight = m_avoidance_weight;
 	config.max_crowding_neighbors = m_max_crowding_neighbors;
+	config.target_weight = m_target_weight;
+	config.target_influence_radius = m_target_influence_radius;
+	config.target_acceptance_radius = m_target_acceptance_radius;
 	return config;
 }
 

@@ -54,6 +54,11 @@ private:
 	bool test_step_min_branch_interval_enforced();
 	bool test_step_avoidance_steering();
 	bool test_step_crowding_termination();
+	bool test_reject_invalid_target_points();
+	bool test_step_target_steering_and_acceptance_continues_growth();
+	bool test_step_target_influence_radius_scoping();
+	bool test_connect_unreached_targets_guarantees_reachability();
+	bool test_connect_unreached_targets_fails_when_max_points_exhausted();
 
 	int m_passed = 0;
 	int m_failed = 0;

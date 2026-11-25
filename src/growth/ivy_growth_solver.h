@@ -9,6 +9,10 @@
 
 #include "ivy_growth_graph.h"
 
+#include <godot_cpp/variant/vector2.hpp>
+#include <godot_cpp/variant/vector3.hpp>
+
+#include <cstdint>
 #include <vector>
 
 /**
@@ -48,20 +52,30 @@ public:
 	 * @param config Growth parameters and directional weights.
 	 * @param random Deterministic random number generator.
 	 * @param start_points List of root start coordinates on the wall surface.
-	 * @return bool True if all inputs and start points are valid and roots are placed.
+	 * @param target_points Optional list of target waypoint coordinates on the wall surface.
+	 * @return bool True if all inputs, start points, and target points are valid and roots are placed.
 	 */
 	bool initialize(
 			const IvyWall &wall,
 			const IvySurfaceSampler &surface_sampler,
 			const IvyGrowthConfig &config,
 			IvyRandom &random,
-			const std::vector<godot::Vector3> &start_points);
+			const std::vector<godot::Vector3> &start_points,
+			const std::vector<godot::Vector3> &target_points = {});
 
 	/**
 	 * @brief Advances all active tips by one step length across the wall surface.
 	 * @return GrowthStepResult ADVANCED if tips grew, FINISHED if all tips ended, ERROR on invalid state.
 	 */
 	GrowthStepResult step();
+
+	/**
+	 * @brief Connects any still-unsatisfied target waypoints by growing deterministic
+	 * lateral tendrils from the closest existing graph points until every target is reached.
+	 * @return bool True if all targets are reached (or no targets exist), false if uninitialized
+	 * or if max_points capacity is exhausted before reaching all targets.
+	 */
+	bool connect_unreached_targets();
 
 	/**
 	 * @brief Checks whether the simulation has finished (no active tips remain).
@@ -74,6 +88,25 @@ public:
 	 * @return const IvyGrowthGraph& Graph reference.
 	 */
 	const IvyGrowthGraph &get_graph() const;
+
+	/**
+	 * @brief Returns the number of configured target waypoints.
+	 * @return int32_t Number of target waypoints.
+	 */
+	int32_t get_target_count() const;
+
+	/**
+	 * @brief Checks whether the target waypoint at target_index has been reached.
+	 * @param target_index Zero-based target index.
+	 * @return bool True if index is valid and target was reached within acceptance radius.
+	 */
+	bool is_target_reached(int32_t target_index) const;
+
+	/**
+	 * @brief Returns the total number of target waypoints reached so far.
+	 * @return int32_t Count of satisfied targets.
+	 */
+	int32_t get_reached_target_count() const;
 
 private:
 	IvyGrowthGraph m_graph;
@@ -88,6 +121,10 @@ private:
 	int32_t m_grid_rows = 0;
 	float m_grid_cell_size = 0.0f;
 
+	// Target waypoints
+	std::vector<godot::Vector2> m_target_points_local;
+	std::vector<uint8_t> m_target_reached;
+
 	const IvyWall *m_wall = nullptr;
 	const IvySurfaceSampler *m_surface_sampler = nullptr;
 	const IvyGrowthConfig *m_config = nullptr;
@@ -97,11 +134,6 @@ private:
 			const IvyPoint &tip,
 			const godot::Vector2 &tip_local,
 			godot::Vector2 &out_direction) const;
-
-	bool compute_step_local_direction(
-			const IvyPoint &tip,
-			const godot::Vector2 &tip_local,
-			godot::Vector2 &out_direction);
 
 	/**
 	 * @brief Computes normalized surface attraction gradient and contour tangent vectors.
@@ -194,6 +226,22 @@ private:
 	int32_t count_crowding_neighbors(
 			int32_t tip_index,
 			const godot::Vector2 &query_local) const;
+
+	/**
+	 * @brief Computes a soft steering vector toward the nearest unsatisfied target waypoint.
+	 * @param tip_local 2D local position of the active tip on the wall.
+	 * @return Steering vector weighted by influence falloff (or zero vector if none in range).
+	 */
+	godot::Vector2 compute_target_vector(const godot::Vector2 &tip_local) const;
+
+	/**
+	 * @brief Marks any unsatisfied target waypoints within target_acceptance_radius of the segment as reached.
+	 * @param segment_start 2D local start position of the newly added growth segment.
+	 * @param segment_end 2D local end position of the newly added growth segment.
+	 */
+	void update_reached_targets(
+			const godot::Vector2 &segment_start,
+			const godot::Vector2 &segment_end);
 };
 
 } // namespace ivygenerator

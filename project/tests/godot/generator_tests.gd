@@ -21,6 +21,8 @@ func run_all() -> void:
 	test_generate_determinism()
 	test_failed_generate_clears_previous_results()
 	test_preset_resource()
+	test_target_points_steering_and_queries()
+	test_target_points_guaranteed_reached()
 
 	_print_test_summary()
 
@@ -52,6 +54,9 @@ func test_settings_properties() -> void:
 
 	_run_test("Default seed is 42", settings.seed == 42)
 	_run_test("Default branch_angle_degrees is 30", is_equal_approx(settings.branch_angle_degrees, 30.0))
+	_run_test("Default target_weight is 0", is_equal_approx(settings.target_weight, 0.0))
+	_run_test("Default target_influence_radius is 0", is_equal_approx(settings.target_influence_radius, 0.0))
+	_run_test("Default target_acceptance_radius is 0.2", is_equal_approx(settings.target_acceptance_radius, 0.2))
 
 	settings.seed = 777
 	settings.start_count = 4
@@ -60,6 +65,9 @@ func test_settings_properties() -> void:
 	settings.branch_angle_degrees = 45.0
 	settings.thickness_growth_per_step = 0.01
 	settings.wither_rate_per_step = 0.005
+	settings.target_weight = 1.75
+	settings.target_influence_radius = 2.5
+	settings.target_acceptance_radius = 0.35
 
 	_run_test("Settings seed round-trip", settings.seed == 777)
 	_run_test("Settings start_count round-trip", settings.start_count == 4)
@@ -68,6 +76,9 @@ func test_settings_properties() -> void:
 	_run_test("Settings branch_angle_degrees round-trip", is_equal_approx(settings.branch_angle_degrees, 45.0))
 	_run_test("Settings thickness_growth_per_step round-trip", is_equal_approx(settings.thickness_growth_per_step, 0.01))
 	_run_test("Settings wither_rate_per_step round-trip", is_equal_approx(settings.wither_rate_per_step, 0.005))
+	_run_test("Settings target_weight round-trip", is_equal_approx(settings.target_weight, 1.75))
+	_run_test("Settings target_influence_radius round-trip", is_equal_approx(settings.target_influence_radius, 2.5))
+	_run_test("Settings target_acceptance_radius round-trip", is_equal_approx(settings.target_acceptance_radius, 0.35))
 
 
 func test_reject_incomplete_setup() -> void:
@@ -99,6 +110,11 @@ func test_reject_incomplete_setup() -> void:
 	# Explicit start off wall plane.
 	generator.set_start_points(PackedVector3Array([Vector3(1.0, 0.0, 5.0)]))
 	_run_test("Reject off-wall explicit start point", not generator.generate())
+
+	# Target point off wall plane.
+	generator.clear_start_points()
+	generator.set_target_points(PackedVector3Array([Vector3(1.0, 2.0, 5.0)]))
+	_run_test("Reject off-wall target point", not generator.generate() and generator.get_target_count() == 0)
 
 
 func test_generate_explicit_and_auto_starts() -> void:
@@ -204,3 +220,82 @@ func test_preset_resource() -> void:
 		generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, 6.0, 4.0)
 		generator.set_attraction_image(_make_uniform_image())
 		_run_test("Generate with preset resource succeeds", generator.generate() and generator.get_point_count() > 0)
+
+
+func test_target_points_steering_and_queries() -> void:
+	var generator := IvyGenerator.new()
+	var settings := IvySettings.new()
+	settings.seed = 42
+	settings.start_count = 1
+	settings.max_steps = 8
+	settings.step_length = 0.5
+	settings.momentum_weight = 0.5
+	settings.upward_weight = 0.5
+	settings.attraction_weight = 0.0
+	settings.contour_weight = 0.0
+	settings.target_weight = 2.0
+	settings.target_influence_radius = 0.0
+	settings.target_acceptance_radius = 0.35
+
+	generator.settings = settings
+	generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, 10.0, 10.0)
+	generator.set_attraction_image(_make_uniform_image())
+	generator.set_start_points(PackedVector3Array([Vector3(5.0, 0.0, 0.0)]))
+
+	var target := Vector3(6.0, 1.5, 0.0)
+	generator.set_target_points(PackedVector3Array([target]))
+	var stored_targets := generator.get_target_points()
+	_run_test("Configured target points round-trip",
+		stored_targets.size() == 1 and stored_targets[0].is_equal_approx(target))
+
+	var ok := generator.generate()
+	_run_test("Generate with target waypoint succeeds", ok)
+	if not ok:
+		return
+
+	_run_test("Target count matches configured targets", generator.get_target_count() == 1)
+	_run_test("Target waypoint marked reached", generator.is_target_reached(0))
+	_run_test("Reached target count is 1", generator.get_reached_target_count() == 1)
+	_run_test("Out-of-range target index returns false",
+		not generator.is_target_reached(-1) and not generator.is_target_reached(1))
+
+	var positions := generator.get_point_positions()
+	_run_test("Soft waypoint lets vine keep growing past target",
+		positions.size() == 9 and positions[positions.size() - 1].y > 1.8)
+
+	generator.clear_target_points()
+	_run_test("Clear target points empties configured list", generator.get_target_points().is_empty())
+
+	generator.settings = null
+	_run_test("Failed generate resets reached target state",
+		not generator.generate() and generator.get_target_count() == 0 and generator.get_reached_target_count() == 0)
+
+
+func test_target_points_guaranteed_reached() -> void:
+	var generator := IvyGenerator.new()
+	var settings := IvySettings.new()
+	settings.seed = 42
+	settings.start_count = 1
+	settings.max_steps = 6
+	settings.step_length = 0.4
+	settings.target_weight = 0.0
+	settings.target_acceptance_radius = 0.25
+
+	generator.settings = settings
+	generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, 10.0, 10.0)
+	generator.set_attraction_image(_make_uniform_image())
+	generator.set_start_points(PackedVector3Array([Vector3(1.0, 0.0, 0.0)]))
+	generator.set_target_points(PackedVector3Array([
+		Vector3(8.5, 2.0, 0.0),
+		Vector3(8.5, 7.5, 0.0),
+	]))
+
+	var ok := generator.generate()
+	_run_test("Generate guarantees reaching distant unguided targets", ok)
+	if not ok:
+		return
+
+	_run_test("Guaranteed reach target count is 2", generator.get_target_count() == 2)
+	_run_test("Guaranteed reach reports both targets reached", generator.get_reached_target_count() == 2)
+	_run_test("First distant target reached", generator.is_target_reached(0))
+	_run_test("Second distant target reached", generator.is_target_reached(1))
