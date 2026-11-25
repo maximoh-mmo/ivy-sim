@@ -1,0 +1,24 @@
+[gd_resource type="IvySettings" format=3]
+
+[resource]
+seed = 138
+start_count = 3
+max_steps = 80
+initial_thickness = 0.03
+step_length = 0.08
+max_points = 4000
+upward_weight = 0.55
+random_weight = 0.35
+attraction_weight = 0.8
+contour_weight = 0.6
+gradient_epsilon = 0.015
+branch_probability = 0.09
+branch_angle_degrees = 25.0
+min_branch_interval = 6
+thickness_growth_per_step = 0.001
+max_thickness = 0.261
+wither_rate_per_step = 0.001
+min_withered_thickness = 0.002
+crowding_radius = 0.15
+avoidance_weight = 0.24
+max_crowding_neighbors = 17

@@ -13,7 +13,7 @@ extends Node
 var _generator := IvyGenerator.new()
 var _attraction_image: Image
 var _ivy_mesh_instance: MeshInstance3D
-
+var _settings_panel: IvySettingsPanel
 
 func _ready() -> void:
 	if settings == null:
@@ -21,12 +21,15 @@ func _ready() -> void:
 
 	_attraction_image = _create_brick_attraction_image(128, 128)
 	_setup_scene()
+	_setup_ui()
 	_regenerate()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
 		settings.seed += 1
+		if _settings_panel != null:
+			_settings_panel.sync_from_settings()
 		_regenerate()
 
 
@@ -93,9 +96,10 @@ func _setup_scene() -> void:
 
 	# Camera centered on the wall
 	var camera := Camera3D.new()
-	camera.position = Vector3(wall_width * 0.5, wall_height * 0.5, maxf(wall_width, wall_height) * 1.15)
+	var view_center := Vector3(wall_width * 0.35, wall_height * 0.5, 0.0)
+	camera.position = Vector3(view_center.x, view_center.y, maxf(wall_width, wall_height) * 1.25)
 	add_child(camera)
-	camera.look_at(Vector3(wall_width * 0.5, wall_height * 0.5, 0.0), Vector3.UP)
+	camera.look_at(view_center, Vector3.UP)
 
 	# Planar wall mesh aligned with IvyWall (bottom-left at origin, facing +Z)
 	var wall_mesh := QuadMesh.new()
@@ -122,15 +126,34 @@ func _setup_scene() -> void:
 	_ivy_mesh_instance.material_override = ivy_mat
 	add_child(_ivy_mesh_instance)
 
+func _setup_ui() -> void:
+	_settings_panel = IvySettingsPanel.new()
+	add_child(_settings_panel)
+	_settings_panel.setup(settings)
+	_settings_panel.settings_changed.connect(_regenerate)
+	_settings_panel.reset_requested.connect(func() -> void:
+		settings = _create_default_settings()
+		_settings_panel.set_settings(settings)
+		_regenerate()
+	)
+	_settings_panel.preset_loaded.connect(func(loaded: IvySettings) -> void:
+		settings = loaded
+		_regenerate()
+	)
+
 
 func _regenerate() -> void:
 	_generator.settings = settings
 	_generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, wall_width, wall_height, uv_scale, Vector2.ZERO)
 	_generator.set_attraction_image(_attraction_image)
 
+	var start_us := Time.get_ticks_usec()
 	if not _generator.generate():
-		push_error("IvyGenerator.generate() failed.")
+		_ivy_mesh_instance.mesh = null
+		if _settings_panel != null:
+			_settings_panel.set_status("Invalid settings combination (check thickness/weight bounds)", true)
 		return
+	var elapsed_ms := float(Time.get_ticks_usec() - start_us) / 1000.0
 
 	_ivy_mesh_instance.mesh = IvyDebugRenderer.build_ribbon_mesh(
 		_generator.get_point_positions(),
@@ -140,4 +163,7 @@ func _regenerate() -> void:
 		settings.initial_thickness
 	)
 
-	print("Generated ivy | seed=%d | points=%d" % [settings.seed, _generator.get_point_count()])
+	var status := "Seed: %d | Points: %d | %.2f ms" % [settings.seed, _generator.get_point_count(), elapsed_ms]
+	if _settings_panel != null:
+		_settings_panel.set_status(status)
+	print(status)

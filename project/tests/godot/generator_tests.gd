@@ -20,6 +20,7 @@ func run_all() -> void:
 	test_generate_explicit_and_auto_starts()
 	test_generate_determinism()
 	test_failed_generate_clears_previous_results()
+	test_preset_resource()
 
 	_print_test_summary()
 
@@ -191,3 +192,15 @@ func test_failed_generate_clears_previous_results() -> void:
 	_run_test("Subsequent invalid generate fails", not generator.generate())
 	_run_test("Failed generate clears previous results",
 		generator.get_point_count() == 0 and generator.get_point_positions().is_empty())
+
+
+func test_preset_resource() -> void:
+	var preset := ResourceLoader.load("res://presets/ivy_preset.tres", "IvySettings")
+	_run_test("Preset resource loads as IvySettings", preset is IvySettings)
+	if preset is IvySettings:
+		_run_test("Preset seed matches expected value", preset.seed == 138)
+		var generator := IvyGenerator.new()
+		generator.settings = preset
+		generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, 6.0, 4.0)
+		generator.set_attraction_image(_make_uniform_image())
+		_run_test("Generate with preset resource succeeds", generator.generate() and generator.get_point_count() > 0)
