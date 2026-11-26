@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="IvyMeshSettings" inherits="Resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Serializable configuration resource for 3D stem meshing and leaf placement.
+	</brief_description>
+	<description>
+		[IvyMeshSettings] exposes stem tube tessellation and deterministic leaf placement parameters for [IvyMeshBuilder] to the Godot Inspector and GDScript, and supports saving and loading as [code].tres[/code] or [code].res[/code] preset resources.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="cap_tips" type="bool" setter="set_cap_tips" getter="get_cap_tips" default="true">
+			If [code]true[/code], closes the terminal end of each stem chain with a tapered apex cap.
+		</member>
+		<member name="leaf_density" type="float" setter="set_leaf_density" getter="get_leaf_density" default="4.0">
+			Average number of leaves placed per world unit of stem length ([code]&gt;= 0[/code]). A value of [code]0.0[/code] disables leaf placement.
+		</member>
+		<member name="leaf_max_thickness" type="float" setter="set_leaf_max_thickness" getter="get_leaf_max_thickness" default="0.0">
+			Maximum interpolated stem thickness eligible for leaf placement ([code]&gt;= 0[/code]; useful for keeping thick woody trunks bare). A value of [code]0.0[/code] imposes no upper thickness limit.
+		</member>
+		<member name="leaf_min_thickness" type="float" setter="set_leaf_min_thickness" getter="get_leaf_min_thickness" default="0.0">
+			Minimum interpolated stem thickness required for leaf placement ([code]&gt;= 0[/code]; useful for keeping dried withered twigs leafless).
+		</member>
+		<member name="leaf_roll_variation_degrees" type="float" setter="set_leaf_roll_variation_degrees" getter="get_leaf_roll_variation_degrees" default="20.0">
+			Maximum random roll jitter in degrees around each leaf's blade axis ([code]-Z[/code]; [code]&gt;= 0[/code]).
+		</member>
+		<member name="leaf_seed" type="int" setter="set_leaf_seed" getter="get_leaf_seed" default="42">
+			Deterministic PCG32 seed controlling leaf spacing jitter, side alternation, orientation jitter, and scale variation.
+		</member>
+		<member name="leaf_size_max" type="float" setter="set_leaf_size_max" getter="get_leaf_size_max" default="0.16">
+			Maximum uniform leaf scale multiplier ([code]&gt;= leaf_size_min[/code]).
+		</member>
+		<member name="leaf_size_min" type="float" setter="set_leaf_size_min" getter="get_leaf_size_min" default="0.08">
+			Minimum uniform leaf scale multiplier ([code]&gt; 0[/code]).
+		</member>
+		<member name="leaf_tilt_degrees" type="float" setter="set_leaf_tilt_degrees" getter="get_leaf_tilt_degrees" default="30.0">
+			Angle in degrees lifting each leaf blade outward from the wall plane toward [code]wall_normal[/code], within [code][0, 90][/code].
+		</member>
+		<member name="leaf_yaw_variation_degrees" type="float" setter="set_leaf_yaw_variation_degrees" getter="get_leaf_yaw_variation_degrees" default="30.0">
+			Maximum random yaw jitter in degrees around the local stem surface ([code]&gt;= 0[/code]).
+		</member>
+		<member name="radial_segments" type="int" setter="set_radial_segments" getter="get_radial_segments" default="6">
+			Number of radial sides around each cylindrical stem ring ([code]&gt;= 3[/code]).
+		</member>
+		<member name="radius_scale" type="float" setter="set_radius_scale" getter="get_radius_scale" default="0.5">
+			Multiplier converting graph point thickness into cylinder radius ([code]&gt; 0[/code]; [code]0.5[/code] treats graph thickness as diameter).
+		</member>
+		<member name="uv_v_scale" type="float" setter="set_uv_v_scale" getter="get_uv_v_scale" default="1.0">
+			Multiplier scaling accumulated world arc length into texture V coordinates along each stem ([code]&gt; 0[/code]).
+		</member>
+		<member name="wall_offset_ratio" type="float" setter="set_wall_offset_ratio" getter="get_wall_offset_ratio" default="0.85">
+			Fraction of tube radius by which ring centers are offset along [code]wall_normal[/code] so stems adhere to the surface without floating ([code]&gt;= 0[/code]).
+		</member>
+	</members>
+</class>

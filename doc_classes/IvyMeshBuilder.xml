@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="IvyMeshBuilder" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Decoupled Layer 2 builder converting ivy growth graphs into 3D stem meshes and leaf transforms.
+	</brief_description>
+	<description>
+		[IvyMeshBuilder] consumes the pure topological graph arrays produced by [IvyGenerator] ([method IvyGenerator.get_point_positions], [method IvyGenerator.get_point_thicknesses], and [method IvyGenerator.get_point_parent_indices]) without making any material or gameplay assumptions.
+		[method build_stem_mesh] generates a smooth, tapered cylindrical [ArrayMesh] with twist-free ring frames, wall-adhesion offset, seam-free UVs, Godot clockwise front-face winding, and optional tapered tip caps. It populates [constant Mesh.ARRAY_VERTEX], [constant Mesh.ARRAY_NORMAL], [constant Mesh.ARRAY_TEX_UV], [constant Mesh.ARRAY_COLOR], and [constant Mesh.ARRAY_INDEX]. Semantic vertex color channels encode: [code]R[/code] = normalized thickness ([code]thickness / max_thickness[/code]), [code]G[/code] = normalized progress along the stem chain ([code]0[/code] to [code]1[/code]), [code]B[/code] = normalized branch order ([code]clamp(branch_order / 4.0, 0.0, 1.0)[/code]), and [code]A = 1.0[/code].
+		[method build_leaf_transforms] generates deterministic [Transform3D] placements ready for a [MultiMeshInstance3D], using the local convention: origin at the petiole attachment point on the stem surface, [code]-Z[/code] pointing toward the blade tip, and [code]+Y[/code] as the upper leaf face normal.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="build_leaf_transforms" qualifiers="const">
+			<return type="Transform3D[]" />
+			<param index="0" name="positions" type="PackedVector3Array" />
+			<param index="1" name="thicknesses" type="PackedFloat32Array" />
+			<param index="2" name="parent_indices" type="PackedInt32Array" />
+			<param index="3" name="wall_normal" type="Vector3" />
+			<description>
+				Generates deterministic 3D leaf placement transforms along living stem chains using [member settings].
+				Returns an empty array if [member settings] is null, if the graph arrays or [param wall_normal] are invalid, or if [member IvyMeshSettings.leaf_density] is [code]0.0[/code].
+			</description>
+		</method>
+		<method name="build_stem_mesh" qualifiers="const">
+			<return type="ArrayMesh" />
+			<param index="0" name="positions" type="PackedVector3Array" />
+			<param index="1" name="thicknesses" type="PackedFloat32Array" />
+			<param index="2" name="parent_indices" type="PackedInt32Array" />
+			<param index="3" name="wall_normal" type="Vector3" />
+			<description>
+				Builds a tapered 3D cylindrical stem [ArrayMesh] from the supplied growth graph arrays and [param wall_normal] using [member settings].
+				Returns [code]null[/code] if [member settings] is null or if any input array, thickness, parent index, or [param wall_normal] fails validation. Isolated single-root graphs with no segments return a valid empty [ArrayMesh].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="settings" type="IvyMeshSettings" setter="set_settings" getter="get_settings">
+			The [IvyMeshSettings] resource controlling stem tessellation, wall offset, UV scaling, and deterministic leaf placement.
+		</member>
+	</members>
+</class>
