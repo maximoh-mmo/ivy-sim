@@ -28,6 +28,7 @@ var _orbit_pitch := 0.05
 var _orbit_distance := 7.5
 var _is_orbiting := false
 var _show_leaves := true
+var _last_sim_ms := 0.0
 
 
 func _ready() -> void:
@@ -248,11 +249,14 @@ func _update_camera_transform() -> void:
 func _setup_ui() -> void:
 	_settings_panel = IvySettingsPanel.new()
 	add_child(_settings_panel)
-	_settings_panel.setup(settings)
+	_settings_panel.setup(settings, mesh_settings)
 	_settings_panel.settings_changed.connect(_regenerate)
+	_settings_panel.mesh_settings_changed.connect(_rebuild_mesh)
 	_settings_panel.reset_requested.connect(func() -> void:
 		settings = _create_default_settings()
+		mesh_settings = _create_default_mesh_settings()
 		_settings_panel.set_settings(settings)
+		_settings_panel.set_mesh_settings(mesh_settings)
 		_regenerate()
 	)
 	_settings_panel.preset_loaded.connect(func(loaded: IvySettings) -> void:
@@ -274,27 +278,7 @@ func _regenerate() -> void:
 		if _settings_panel != null:
 			_settings_panel.set_status("Invalid settings combination (check thickness/weight bounds)", true)
 		return
-	var sim_ms := float(Time.get_ticks_usec() - sim_start_us) / 1000.0
-
-	var positions := _generator.get_point_positions()
-	var thicknesses := _generator.get_point_thicknesses()
-	var parents := _generator.get_point_parent_indices()
-
-	var mesh_start_us := Time.get_ticks_usec()
-	mesh_settings.leaf_seed = settings.seed
-	_mesh_builder.settings = mesh_settings
-	_stem_mesh_instance.mesh = _mesh_builder.build_stem_mesh(
-		positions, thicknesses, parents, Vector3.BACK)
-
-	var leaf_transforms := _mesh_builder.build_leaf_transforms(
-		positions, thicknesses, parents, Vector3.BACK)
-	var leaf_count := leaf_transforms.size()
-	var mm := _leaf_multimesh_instance.multimesh
-	mm.instance_count = leaf_count
-	for i in range(leaf_count):
-		mm.set_instance_transform(i, leaf_transforms[i])
-	_leaf_multimesh_instance.visible = _show_leaves
-	var mesh_ms := float(Time.get_ticks_usec() - mesh_start_us) / 1000.0
+	_last_sim_ms = float(Time.get_ticks_usec() - sim_start_us) / 1000.0
 
 	var reached_flags: Array[bool] = []
 	for i in range(_target_points.size()):
@@ -307,13 +291,57 @@ func _regenerate() -> void:
 		Vector3.BACK
 	)
 
+	_rebuild_mesh()
+
+
+func _rebuild_mesh() -> void:
+	if _generator.get_point_count() <= 0 or mesh_settings == null:
+		_stem_mesh_instance.mesh = null
+		_leaf_multimesh_instance.multimesh.instance_count = 0
+		return
+
+	if mesh_settings.leaf_size_max < mesh_settings.leaf_size_min:
+		if _settings_panel != null:
+			_settings_panel.set_status("Invalid mesh settings (leaf_size_max < leaf_size_min)", true)
+		return
+	if mesh_settings.leaf_max_thickness > 0.0 and mesh_settings.leaf_max_thickness < mesh_settings.leaf_min_thickness:
+		if _settings_panel != null:
+			_settings_panel.set_status("Invalid mesh settings (leaf_max_thickness < leaf_min_thickness)", true)
+		return
+
+	var positions := _generator.get_point_positions()
+	var thicknesses := _generator.get_point_thicknesses()
+	var parents := _generator.get_point_parent_indices()
+
+	var mesh_start_us := Time.get_ticks_usec()
+	_mesh_builder.settings = mesh_settings
+	var stem_mesh := _mesh_builder.build_stem_mesh(
+		positions, thicknesses, parents, Vector3.BACK)
+	if stem_mesh == null:
+		_stem_mesh_instance.mesh = null
+		_leaf_multimesh_instance.multimesh.instance_count = 0
+		if _settings_panel != null:
+			_settings_panel.set_status("Invalid mesh settings combination", true)
+		return
+	_stem_mesh_instance.mesh = stem_mesh
+
+	var leaf_transforms := _mesh_builder.build_leaf_transforms(
+		positions, thicknesses, parents, Vector3.BACK)
+	var leaf_count := leaf_transforms.size()
+	var mm := _leaf_multimesh_instance.multimesh
+	mm.instance_count = leaf_count
+	for i in range(leaf_count):
+		mm.set_instance_transform(i, leaf_transforms[i])
+	_leaf_multimesh_instance.visible = _show_leaves
+	var mesh_ms := float(Time.get_ticks_usec() - mesh_start_us) / 1000.0
+
 	var status := "[3D] Seed: %d | Pts: %d | Leaves: %d | Targets: %d/%d | Sim: %.2f ms | Mesh: %.2f ms" % [
 		settings.seed,
 		_generator.get_point_count(),
 		leaf_count,
 		_generator.get_reached_target_count(),
 		_generator.get_target_count(),
-		sim_ms,
+		_last_sim_ms,
 		mesh_ms
 	]
 	if _settings_panel != null:

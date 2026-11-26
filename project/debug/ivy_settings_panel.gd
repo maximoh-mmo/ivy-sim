@@ -7,11 +7,14 @@ class_name IvySettingsPanel
 extends CanvasLayer
 
 signal settings_changed
+signal mesh_settings_changed
 signal reset_requested
 signal preset_loaded(new_settings: IvySettings)
 
 var _settings: IvySettings
-var _controls: Dictionary = {} # property_name -> Array[Range] (slider + spinbox)
+var _mesh_settings: IvyMeshSettings
+var _growth_controls: Dictionary = {} # property_name -> Array[Control]
+var _mesh_controls: Dictionary = {} # property_name -> Array[Control]
 var _updating_ui := false
 
 var _status_label: Label
@@ -19,14 +22,20 @@ var _save_dialog: FileDialog
 var _load_dialog: FileDialog
 
 
-func setup(settings: IvySettings) -> void:
+func setup(settings: IvySettings, mesh_settings: IvyMeshSettings = null) -> void:
 	_settings = settings
+	_mesh_settings = mesh_settings
 	_build_ui()
 	sync_from_settings()
 
 
 func set_settings(settings: IvySettings) -> void:
 	_settings = settings
+	sync_from_settings()
+
+
+func set_mesh_settings(mesh_settings: IvyMeshSettings) -> void:
+	_mesh_settings = mesh_settings
 	sync_from_settings()
 
 
@@ -38,14 +47,22 @@ func set_status(text: String, is_error: bool = false) -> void:
 
 
 func sync_from_settings() -> void:
-	if _settings == null:
-		return
 	_updating_ui = true
-	for prop_name: String in _controls:
-		var val: float = float(_settings.get(prop_name))
-		for ctrl: Range in _controls[prop_name]:
-			ctrl.value = val
+	_sync_control_map(_settings, _growth_controls)
+	_sync_control_map(_mesh_settings, _mesh_controls)
 	_updating_ui = false
+
+
+func _sync_control_map(target: Object, controls_map: Dictionary) -> void:
+	if target == null:
+		return
+	for prop_name: String in controls_map:
+		var val: Variant = target.get(prop_name)
+		for ctrl: Control in controls_map[prop_name]:
+			if ctrl is Range:
+				(ctrl as Range).value = float(val)
+			elif ctrl is CheckBox:
+				(ctrl as CheckBox).button_pressed = bool(val)
 
 
 func _build_ui() -> void:
@@ -88,6 +105,8 @@ func _build_ui() -> void:
 	next_seed_btn.text = "Next Seed (Space)"
 	next_seed_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	next_seed_btn.pressed.connect(func() -> void:
+		if _settings == null:
+			return
 		_settings.seed += 1
 		sync_from_settings()
 		settings_changed.emit()
@@ -122,36 +141,27 @@ func _build_ui() -> void:
 
 	root_vbox.add_child(HSeparator.new())
 
-	# Scrollable auto-generated property list from IvySettings ClassDB metadata
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root_vbox.add_child(scroll)
+	if _mesh_settings == null:
+		var scroll := _create_scroll_container()
+		root_vbox.add_child(scroll)
+		var props_vbox := _create_props_vbox(scroll)
+		_populate_property_list(props_vbox, &"IvySettings", _growth_controls, false)
+	else:
+		var tabs := TabContainer.new()
+		tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		root_vbox.add_child(tabs)
 
-	var props_vbox := VBoxContainer.new()
-	props_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	props_vbox.add_theme_constant_override("separation", 6)
-	scroll.add_child(props_vbox)
+		var growth_scroll := _create_scroll_container()
+		growth_scroll.name = "Growth"
+		tabs.add_child(growth_scroll)
+		var growth_vbox := _create_props_vbox(growth_scroll)
+		_populate_property_list(growth_vbox, &"IvySettings", _growth_controls, false)
 
-	for prop: Dictionary in ClassDB.class_get_property_list(&"IvySettings", true):
-		var usage: int = prop["usage"]
-		var prop_name: String = prop["name"]
-
-		if (usage & PROPERTY_USAGE_GROUP) != 0:
-			var group_sep := HSeparator.new()
-			props_vbox.add_child(group_sep)
-			var group_label := Label.new()
-			group_label.text = prop_name
-			group_label.add_theme_font_size_override("font_size", 14)
-			group_label.modulate = Color(0.75, 0.92, 0.75)
-			props_vbox.add_child(group_label)
-			continue
-
-		var prop_type: int = prop["type"]
-		if prop_type != TYPE_INT and prop_type != TYPE_FLOAT:
-			continue
-
-		_add_numeric_row(props_vbox, prop)
+		var mesh_scroll := _create_scroll_container()
+		mesh_scroll.name = "Mesh & Leaves"
+		tabs.add_child(mesh_scroll)
+		var mesh_vbox := _create_props_vbox(mesh_scroll)
+		_populate_property_list(mesh_vbox, &"IvyMeshSettings", _mesh_controls, true)
 
 	# Save / Load file dialogs (saving under res://presets/ makes .tres files usable in the Editor)
 	_save_dialog = FileDialog.new()
@@ -172,7 +182,82 @@ func _build_ui() -> void:
 	add_child(_load_dialog)
 
 
-func _add_numeric_row(parent: VBoxContainer, prop: Dictionary) -> void:
+func _create_scroll_container() -> ScrollContainer:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	return scroll
+
+
+func _create_props_vbox(scroll: ScrollContainer) -> VBoxContainer:
+	var props_vbox := VBoxContainer.new()
+	props_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	props_vbox.add_theme_constant_override("separation", 6)
+	scroll.add_child(props_vbox)
+	return props_vbox
+
+
+func _populate_property_list(
+		parent: VBoxContainer,
+		class_name_str: StringName,
+		controls_map: Dictionary,
+		is_mesh: bool) -> void:
+	for prop: Dictionary in ClassDB.class_get_property_list(class_name_str, true):
+		var usage: int = prop["usage"]
+		var prop_name: String = prop["name"]
+
+		if (usage & PROPERTY_USAGE_GROUP) != 0:
+			parent.add_child(HSeparator.new())
+			var group_label := Label.new()
+			group_label.text = prop_name
+			group_label.add_theme_font_size_override("font_size", 14)
+			group_label.modulate = Color(0.75, 0.92, 0.75)
+			parent.add_child(group_label)
+			continue
+
+		var prop_type: int = prop["type"]
+		if prop_type == TYPE_BOOL:
+			_add_bool_row(parent, prop, controls_map, is_mesh)
+		elif prop_type == TYPE_INT or prop_type == TYPE_FLOAT:
+			_add_numeric_row(parent, prop, controls_map, is_mesh)
+
+
+func _add_bool_row(
+		parent: VBoxContainer,
+		prop: Dictionary,
+		controls_map: Dictionary,
+		is_mesh: bool) -> void:
+	var prop_name: String = prop["name"]
+	var hbox := HBoxContainer.new()
+	parent.add_child(hbox)
+
+	var label := Label.new()
+	label.text = prop_name.capitalize()
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_font_size_override("font_size", 12)
+	hbox.add_child(label)
+
+	var check := CheckBox.new()
+	hbox.add_child(check)
+	controls_map[prop_name] = [check]
+
+	check.toggled.connect(func(pressed: bool) -> void:
+		var target: Object = _mesh_settings if is_mesh else _settings
+		if _updating_ui or target == null:
+			return
+		target.set(prop_name, pressed)
+		if is_mesh:
+			mesh_settings_changed.emit()
+		else:
+			settings_changed.emit()
+	)
+
+
+func _add_numeric_row(
+		parent: VBoxContainer,
+		prop: Dictionary,
+		controls_map: Dictionary,
+		is_mesh: bool) -> void:
 	var prop_name: String = prop["name"]
 	var is_int: bool = prop["type"] == TYPE_INT
 	var hint: int = prop["hint"]
@@ -229,11 +314,12 @@ func _add_numeric_row(parent: VBoxContainer, prop: Dictionary) -> void:
 		row_vbox.add_child(slider)
 		linked.append(slider)
 
-	_controls[prop_name] = linked
+	controls_map[prop_name] = linked
 
 	for ctrl: Range in linked:
 		ctrl.value_changed.connect(func(new_value: float) -> void:
-			if _updating_ui or _settings == null:
+			var target: Object = _mesh_settings if is_mesh else _settings
+			if _updating_ui or target == null:
 				return
 			_updating_ui = true
 			for other: Range in linked:
@@ -242,10 +328,14 @@ func _add_numeric_row(parent: VBoxContainer, prop: Dictionary) -> void:
 			_updating_ui = false
 
 			if is_int:
-				_settings.set(prop_name, int(round(new_value)))
+				target.set(prop_name, int(round(new_value)))
 			else:
-				_settings.set(prop_name, new_value)
-			settings_changed.emit()
+				target.set(prop_name, new_value)
+
+			if is_mesh:
+				mesh_settings_changed.emit()
+			else:
+				settings_changed.emit()
 		)
 
 
