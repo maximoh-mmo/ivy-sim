@@ -49,7 +49,9 @@ sources = [
     "src/growth/ivy_growth_graph.cpp",
     "tests/native/ivy_growth_solver_tests.cpp",
     "src/environment/ivy_surface_sampler.cpp",
-    "src/growth/ivy_growth_solver.cpp"  
+    "src/mesh/ivy_mesh_generator.cpp",
+    "src/growth/ivy_growth_solver.cpp",
+    "tests/native/ivy_mesh_generator_tests.cpp"
 ]
 
 test_program = env.Program(
