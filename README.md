@@ -37,7 +37,6 @@ A deterministic procedural ivy generator implemented in native C++ as a Godot 4 
 * **Interactive Examples (`project/`):**
   * `example_2d.tscn` — Pure 2D `Node2D` canvas showcase using Layer 1 (`IvyGenerator`) with zero 3D dependencies
   * `example_3d.tscn` — Full 3D showcase pairing Layer 1 (`IvyGenerator`) with Layer 2 (`IvyMeshBuilder` 3D tubes + `MultiMeshInstance3D` leaves, semantic bark/shoot shader, and orbit camera)
-  * `example.tscn` — Original 3D debug-ribbon preview scene
 * **Automated Test Suites (`tests/`, `project/tests/`):** Standalone native C++ unit tests (`bin/ivy_tests.exe` / `bin/ivy_tests`) and Godot integration tests (`project/tests/godot/test_runner.gd`).
 
 ---
@@ -108,15 +107,14 @@ if generator.generate():
    ```
    *(On Linux/macOS: `./bin/ivy_tests`.)*
 
-4. Run the Godot integration tests (use the `*_console.exe` binary on Windows to capture stdout; drop `--headless` to also exercise real GPU `MultiMesh` readback):
-   ```powershell
-   & "D:\Desktop\Godot_v4.6.1-stable_win64_console.exe" --headless --path project --script tests/godot/test_runner.gd
+4. Run the Godot integration tests (on Windows, use the `*_console.exe` binary to capture stdout; drop `--headless` to also exercise real GPU `MultiMesh` readback):
+   ```shell
+   godot --headless --path project --script tests/godot/test_runner.gd
    ```
 
 5. Open the interactive example scenes in `project/`:
    * `example_2d.tscn` — Pure 2D Layer 1 view (`Space` next seed, Left-click add target, Right-click remove target, `C` clear targets).
-   * `example_3d.tscn` — Full 3D Layer 2 view (`Space` next seed, `L` toggle leaves, `R` reset camera, Middle-drag / `Alt`+Left-drag orbit, Scroll zoom, Left-click add target, Right-click remove target, `C` clear targets).
-   * `example.tscn` — Debug ribbon view.
+   * `example_3d.tscn` — Default 3D Layer 2 view (`Space` next seed, `L` toggle leaves, `R` reset camera, Middle-drag / `Alt`+Left-drag orbit, Scroll zoom, Left-click add target, Right-click remove target, `C` clear targets).
 
 ---
 
@@ -133,9 +131,8 @@ ivy-sim/
 │   ├── debug/             # ivy_debug_renderer.gd, ivy_settings_panel.gd
 │   ├── presets/           # Saved IvySettings .tres presets
 │   ├── tests/godot/       # test_runner.gd, sampler_tests.gd, generator_tests.gd, mesh_builder_tests.gd
-│   ├── example.gd/.tscn   # Original 3D debug-ribbon preview
 │   ├── example_2d.gd/.tscn# Pure 2D Layer 1 example
-│   └── example_3d.gd/.tscn# Full 3D Layer 1 + Layer 2 stem & leaf example
+│   └── example_3d.gd/.tscn# Full 3D Layer 1 + Layer 2 stem & leaf example (default main scene)
 ├── src/                   # C++ extension source code
 │   ├── environment/       # IvyWall, IvyPixelSampler, IvySurfaceSampler
 │   ├── growth/            # IvyPoint, IvyGrowthGraph, IvyGrowthSolver

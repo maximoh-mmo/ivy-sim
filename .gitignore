@@ -42,6 +42,8 @@ compile_commands.json
 
 # Other stuff
 *.log
+.agents/
+.gemini/
 
 # VSCode
 .vscode/*
