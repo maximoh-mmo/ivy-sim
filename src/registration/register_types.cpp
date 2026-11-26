@@ -14,8 +14,9 @@
 
 #include "godot/ivy_surface_sampler_test_bridge.h"
 #include "ivy_generator/ivy_generator.h"
+#include "mesh/ivy_mesh_builder.h"
+#include "mesh/ivy_mesh_settings.h"
 #include "settings/ivy_settings.h"
-
 /**
  * @file register_types.cpp
  * @brief GDExtension entry point and class registration implementation.
@@ -30,6 +31,8 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(ivygenerator::IvyGenerator);
 	GDREGISTER_CLASS(ivygenerator::IvySurfaceSamplerTestBridge);
 	GDREGISTER_CLASS(ivygenerator::IvySettings);
+	GDREGISTER_CLASS(ivygenerator::IvyMeshSettings);
+	GDREGISTER_CLASS(ivygenerator::IvyMeshBuilder);
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
