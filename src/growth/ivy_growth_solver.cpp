@@ -324,7 +324,6 @@ bool IvyGrowthSolver::is_finished() const {
 }
 
 const IvyGrowthGraph &IvyGrowthSolver::get_graph() const {
-	// TODO: insert return statement here
 	return m_graph;
 }
 
@@ -825,7 +824,7 @@ void IvyGrowthSolver::update_reached_targets(
 		const godot::Vector2 target = m_target_points_local[i];
 		godot::Vector2 closest = segment_end;
 		if (seg_len_sq > 0.000001f) {
-			const float t = std::clamp((target - segment_start).dot(seg) / seg_len_sq, 0.0f, 1.0f);
+			const float t = std::clamp(static_cast<float>((target - segment_start).dot(seg)) / seg_len_sq, 0.0f, 1.0f);
 			closest = segment_start + seg * t;
 		}
 
@@ -927,8 +926,8 @@ bool IvyGrowthSolver::connect_unreached_targets() {
 
 			if (!m_wall->contains_local_point(next_local)) {
 				next_local = current_local + target_dir * step_dist;
-				next_local.x = std::clamp(next_local.x, 0.0f, m_wall->width);
-				next_local.y = std::clamp(next_local.y, 0.0f, m_wall->height);
+				next_local.x = std::clamp(static_cast<float>(next_local.x), 0.0f, m_wall->width);
+				next_local.y = std::clamp(static_cast<float>(next_local.y), 0.0f, m_wall->height);
 			}
 
 			IvyPoint spur_point;

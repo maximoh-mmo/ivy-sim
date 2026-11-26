@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="IvySettings" inherits="Resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Serializable configuration resource for procedural ivy growth simulation.
+	</brief_description>
+	<description>
+		[IvySettings] exposes all parameters used by [IvyGenerator] to the Godot Inspector and GDScript, and can be saved and loaded as [code].tres[/code] or [code].res[/code] preset resources.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="attraction_weight" type="float" setter="set_attraction_weight" getter="get_attraction_weight" default="0.5">
+			Steering weight pulling active vine tips up the scalar attraction gradient of the guidance image ([code]&gt;= 0[/code]).
+		</member>
+		<member name="avoidance_weight" type="float" setter="set_avoidance_weight" getter="get_avoidance_weight" default="0.0">
+			Steering weight repelling active tips away from nearby unrelated vine points within [member crowding_radius] ([code]&gt;= 0[/code]).
+		</member>
+		<member name="branch_angle_degrees" type="float" setter="set_branch_angle_degrees" getter="get_branch_angle_degrees" default="30.0">
+			Deflection angle in degrees for newly spawned lateral branches, within [code](0, 90][/code].
+		</member>
+		<member name="branch_probability" type="float" setter="set_branch_probability" getter="get_branch_probability" default="0.0">
+			Per-step probability in [code][0, 1][/code] of spawning a side branch after [member min_branch_interval] unbranched steps.
+		</member>
+		<member name="contour_weight" type="float" setter="set_contour_weight" getter="get_contour_weight" default="0.5">
+			Steering weight aligning active vine tips along attraction iso-contours (for example, following mortar grooves between bricks; [code]&gt;= 0[/code]).
+		</member>
+		<member name="crowding_radius" type="float" setter="set_crowding_radius" getter="get_crowding_radius" default="0.0">
+			Local spatial search radius used for self-avoidance steering and crowding termination. A value of [code]0.0[/code] disables spatial crowding and avoidance checks.
+		</member>
+		<member name="gradient_epsilon" type="float" setter="set_gradient_epsilon" getter="get_gradient_epsilon" default="0.01">
+			Finite-difference step in UV space used to evaluate the attraction gradient ([code]&gt; 0[/code]).
+		</member>
+		<member name="gradient_saturation" type="float" setter="set_gradient_saturation" getter="get_gradient_saturation" default="0.1">
+			Dimensionless step attraction gain where gradient and contour steering reach 50% strength ([code]&gt;= 0[/code]). Prevents ridge zig-zagging across thin grooves; [code]0.0[/code] applies unattenuated unit steering.
+		</member>
+		<member name="initial_thickness" type="float" setter="set_initial_thickness" getter="get_initial_thickness" default="0.1">
+			Initial radial thickness assigned to root points and newly grown vine tips ([code]&gt; 0[/code]).
+		</member>
+		<member name="max_crowding_neighbors" type="int" setter="set_max_crowding_neighbors" getter="get_max_crowding_neighbors" default="0">
+			Number of unrelated neighbor points within [member crowding_radius] at which a tip terminates. A value of [code]0[/code] disables crowding termination.
+		</member>
+		<member name="max_points" type="int" setter="set_max_points" getter="get_max_points" default="10000">
+			Hard cap on total points allowed in the generated growth graph ([code]&gt; 0[/code] and [code]&gt;= start_count[/code]).
+		</member>
+		<member name="max_steps" type="int" setter="set_max_steps" getter="get_max_steps" default="200">
+			Maximum number of global Phase 1 growth iterations executed by [method IvyGenerator.generate] ([code]&gt; 0[/code]).
+		</member>
+		<member name="max_thickness" type="float" setter="set_max_thickness" getter="get_max_thickness" default="0.5">
+			Maximum radial thickness that living vascular stems can reach ([code]&gt;= initial_thickness[/code]).
+		</member>
+		<member name="max_top_edge_steps" type="int" setter="set_max_top_edge_steps" getter="get_max_top_edge_steps" default="0">
+			Maximum steps an active tip may curve laterally across the soft canopy band near the top edge of the wall before stopping cleanly. A value of [code]0[/code] stops tips immediately at the top boundary.
+		</member>
+		<member name="min_branch_interval" type="int" setter="set_min_branch_interval" getter="get_min_branch_interval" default="0">
+			Minimum unbranched steps required after starting or forking before a tip may spawn another side branch ([code]&gt;= 0[/code]).
+		</member>
+		<member name="min_withered_thickness" type="float" setter="set_min_withered_thickness" getter="get_min_withered_thickness" default="0.02">
+			Minimum radial thickness preserved for withered branches so dried twigs remain visible ([code]0 &lt; min_withered_thickness &lt;= initial_thickness[/code]).
+		</member>
+		<member name="momentum_weight" type="float" setter="set_momentum_weight" getter="get_momentum_weight" default="1.0">
+			Steering weight preserving each tip's previous growth direction ([code]&gt;= 0[/code]; [code]momentum_weight + upward_weight[/code] must be positive).
+		</member>
+		<member name="random_weight" type="float" setter="set_random_weight" getter="get_random_weight" default="0.0">
+			Steering weight applying seeded forward-hemisphere random wander at each step ([code]&gt;= 0[/code]).
+		</member>
+		<member name="seed" type="int" setter="set_seed" getter="get_seed" default="42">
+			Deterministic PCG32 random seed controlling start placement, wander, and branching.
+		</member>
+		<member name="start_count" type="int" setter="set_start_count" getter="get_start_count" default="1">
+			Total number of root stems grown ([code]&gt; 0[/code]). Any slots not supplied via [method IvyGenerator.set_start_points] are generated along the bottom wall edge.
+		</member>
+		<member name="step_length" type="float" setter="set_step_length" getter="get_step_length" default="0.1">
+			Physical distance advanced along the wall surface per growth step ([code]&gt; 0[/code]).
+		</member>
+		<member name="target_acceptance_radius" type="float" setter="set_target_acceptance_radius" getter="get_target_acceptance_radius" default="0.2">
+			Distance threshold within which a target waypoint is marked reached ([code]&gt; 0[/code]).
+		</member>
+		<member name="target_influence_radius" type="float" setter="set_target_influence_radius" getter="get_target_influence_radius" default="0.0">
+			Radius within which active tips experience linear pull toward unsatisfied targets during Phase 1. A value of [code]0.0[/code] applies global target pull across the entire wall.
+		</member>
+		<member name="target_weight" type="float" setter="set_target_weight" getter="get_target_weight" default="0.0">
+			Steering weight pulling active tips toward the nearest unsatisfied target waypoint during Phase 1 ([code]&gt;= 0[/code]).
+		</member>
+		<member name="thickness_growth_per_step" type="float" setter="set_thickness_growth_per_step" getter="get_thickness_growth_per_step" default="0.005">
+			Base radial thickening applied per step to internal living segments, scaled by [code]sqrt(downstream_active_tips)[/code] ([code]&gt;= 0[/code]).
+		</member>
+		<member name="upward_weight" type="float" setter="set_upward_weight" getter="get_upward_weight" default="0.5">
+			Steering weight pulling active tips toward the wall's local upward axis ([code]+axis_v[/code]; [code]&gt;= 0[/code]).
+		</member>
+		<member name="wither_rate_per_step" type="float" setter="set_wither_rate_per_step" getter="get_wither_rate_per_step" default="0.002">
+			Radial shrinkage applied per step to terminated or crowded branches without active downstream tips ([code]&gt;= 0[/code]). Healthy boundary-stopped stems freeze instead of withering.
+		</member>
+	</members>
+</class>

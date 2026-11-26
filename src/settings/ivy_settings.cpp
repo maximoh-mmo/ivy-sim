@@ -63,13 +63,13 @@ void IvySettings::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_gradient_saturation"), &IvySettings::get_gradient_saturation);
 
 	ADD_GROUP("Steering", "");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "gradient_saturation", PROPERTY_HINT_RANGE, "0.0,2.0,0.01,or_greater"), "set_gradient_saturation", "get_gradient_saturation");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "momentum_weight", PROPERTY_HINT_RANGE, "0.0,10.0,0.01,or_greater"), "set_momentum_weight", "get_momentum_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "upward_weight", PROPERTY_HINT_RANGE, "0.0,10.0,0.01,or_greater"), "set_upward_weight", "get_upward_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "random_weight", PROPERTY_HINT_RANGE, "0.0,10.0,0.01,or_greater"), "set_random_weight", "get_random_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "attraction_weight", PROPERTY_HINT_RANGE, "0.0,10.0,0.01,or_greater"), "set_attraction_weight", "get_attraction_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "contour_weight", PROPERTY_HINT_RANGE, "0.0,10.0,0.01,or_greater"), "set_contour_weight", "get_contour_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "gradient_epsilon", PROPERTY_HINT_RANGE, "0.0001,0.25,0.0001"), "set_gradient_epsilon", "get_gradient_epsilon");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "gradient_saturation", PROPERTY_HINT_RANGE, "0.0,2.0,0.01,or_greater"), "set_gradient_saturation", "get_gradient_saturation");
 	// Branching
 	ClassDB::bind_method(D_METHOD("set_min_branch_interval", "min_branch_interval"), &IvySettings::set_min_branch_interval);
 	ClassDB::bind_method(D_METHOD("get_min_branch_interval"), &IvySettings::get_min_branch_interval);
