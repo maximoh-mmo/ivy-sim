@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2026 Max Heinze. All rights reserved.
+ * Ivy Sim - Procedural ivy generator for Godot 4
+ * Copyright (C) 2026 Max Heinze
  *
- * Licensed for non-commercial use with attribution only.
- * Commercial use is strictly prohibited.
+ * SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-Commercial
+ * Dual-licensed under GNU GPLv3 (see LICENSE) or a commercial license (see COMMERCIAL_LICENSE.md).
+ * Distributed WITHOUT ANY WARRANTY; see LICENSE for details.
  */
 
 #pragma once
@@ -83,6 +85,12 @@ public:
 			float height,
 			const godot::Vector2 &uv_scale = godot::Vector2(1.0f, 1.0f),
 			const godot::Vector2 &uv_offset = godot::Vector2(0.0f, 0.0f));
+
+	/**
+	 * @brief Returns the unit surface normal of the configured wall (or zero vector if wall is invalid).
+	 * @return Normalized wall surface normal vector.
+	 */
+	godot::Vector3 get_wall_normal() const;
 
 	/**
 	 * @brief Sets the attraction/obstacle scalar guidance image.

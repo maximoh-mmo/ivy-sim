@@ -6,13 +6,33 @@ on:
   workflow_dispatch:
 
 jobs:
+  addon-files:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Stage Addon Metadata & License Files
+        shell: bash
+        run: |
+          mkdir -p staging/addons/ivy_sim
+          cp project/addons/ivy_sim/ivysimulation.gdextension \
+             project/addons/ivy_sim/plugin.cfg \
+             project/addons/ivy_sim/plugin.gd \
+             project/addons/ivy_sim/LICENSE \
+             project/addons/ivy_sim/COMMERCIAL_LICENSE.md \
+             staging/addons/ivy_sim/
+
+      - name: Upload Addon Files
+        uses: actions/upload-artifact@v7
+        with:
+          name: ivysim-addon-files
+          path: ${{ github.workspace }}/staging/
+
   build:
     strategy:
       fail-fast: false
       matrix:
-        # A build is made for every possible combination of parameters
-        # You can add or remove entries from the arrays of each parameter to customize which builds you want to run.
-        # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
         target:
           [
             { platform: linux, arch: x86_64, os: ubuntu-22.04 },
@@ -35,26 +55,21 @@ jobs:
 
     runs-on: ${{ matrix.target.os }}
     steps:
-      # Clone this repository
       - name: Checkout
         uses: actions/checkout@v7
         with:
           submodules: true
 
-      # Add linux x86_32 toolchain
       - name: Install multilib support
         if: ${{ matrix.target.platform == 'linux' && matrix.target.arch == 'x86_32' }}
         run: |
           sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
 
-      # Setup dependencies
       - name: Setup godot-cpp
         uses: ./godot-cpp/.github/actions/setup-godot-cpp
         with:
           platform: ${{ matrix.target.platform }}
           em-version: 3.1.62
-
-      # Build GDExtension (with caches)
 
       - name: Restore .scons_cache
         uses: ./godot-cpp/.github/actions/godot-cache-restore
@@ -62,12 +77,12 @@ jobs:
           scons-cache: ${{ github.workspace }}/.scons-cache/
           cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
 
-      - name: Build GDExtension Debug Build
+      - name: Build GDExtension
         shell: sh
         env:
           SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
         run: |
-          scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }}
+          scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }} build_tests=no
 
       - name: Save .scons_cache
         uses: ./godot-cpp/.github/actions/godot-cache-save
@@ -75,26 +90,27 @@ jobs:
           scons-cache: ${{ github.workspace }}/.scons-cache/
           cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
 
-      # Clean up compilation files
       - name: Windows - Delete compilation files
         if: ${{ matrix.target.platform == 'windows' }}
         shell: pwsh
         run: |
-          Remove-Item bin/* -Include *.exp,*.lib,*.pdb -Force
+          Remove-Item project/addons/ivy_sim/bin/${{ matrix.target.platform }}/* -Include *.exp,*.lib,*.pdb -Force -ErrorAction SilentlyContinue
 
-      # Upload the build
+      - name: Stage Addon Binaries
+        shell: bash
+        run: |
+          mkdir -p staging/addons/ivy_sim/bin
+          cp -r project/addons/ivy_sim/bin/* staging/addons/ivy_sim/bin/
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
           name: ivysim-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
-          path: |
-            ${{ github.workspace }}/bin/**
+          path: ${{ github.workspace }}/staging/
 
-  # Merges all the build artifacts together into a single ivysim artifact.
-  # If you comment out this step, all the builds will be uploaded individually.
   merge:
     runs-on: ubuntu-22.04
-    needs: build
+    needs: [addon-files, build]
     steps:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v7

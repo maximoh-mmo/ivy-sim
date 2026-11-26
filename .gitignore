@@ -4,9 +4,7 @@
 
 # Ignore library files but not the gdextension file
 /bin/
-/project/bin/*/
-!/project/bin/*.gdextension
-!/project/bin/*.gdextension.uid
+/project/addons/ivy_sim/bin/
 
 # Ignore scons database
 .sconsign*.dblite

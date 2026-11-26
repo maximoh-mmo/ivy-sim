@@ -65,11 +65,12 @@ if generator.generate():
 	# 2. Layer 2 (optional, for 3D): Build stem ArrayMesh & MultiMesh leaf transforms
 	var mesh_builder := IvyMeshBuilder.new()
 	mesh_builder.settings = IvyMeshSettings.new()
+	var wall_normal := generator.get_wall_normal()
 
 	var stem_mesh: ArrayMesh = mesh_builder.build_stem_mesh(
-		positions, thicknesses, parents, Vector3.BACK)
+		positions, thicknesses, parents, wall_normal)
 	var leaf_transforms: Array[Transform3D] = mesh_builder.build_leaf_transforms(
-		positions, thicknesses, parents, Vector3.BACK)
+		positions, thicknesses, parents, wall_normal)
 ```
 
 > [!TIP]
@@ -94,7 +95,7 @@ if generator.generate():
    ```
    *(If already cloned without submodules, run `git submodule update --init --recursive`.)*
 
-2. Build the GDExtension library (compiles into `project/bin/<platform>/` and embeds `doc_classes/*.xml` on `editor`/`template_debug` targets):
+2. Build the GDExtension library (compiles into `project/addons/ivy_sim/bin/<platform>/` and embeds `doc_classes/*.xml` on `editor`/`template_debug` targets; pass `build_tests=no` for clean release distribution without the internal test bridge):
    ```powershell
    scons platform=windows target=template_debug -j8
    ```
@@ -123,10 +124,12 @@ if generator.generate():
 
 ```text
 ivy-sim/
+├── COMMERCIAL_LICENSE.md  # Commercial licensing terms and inquiry contact
+├── LICENSE                # GNU General Public License v3.0
 ├── doc_classes/           # GDExtension XML docs (IvyGenerator, IvySettings, IvyMeshBuilder, IvyMeshSettings)
 ├── godot-cpp/             # Godot C++ bindings submodule
-├── project/               # Godot project, presets, example scenes, and integration tests
-│   ├── bin/               # ivysimulation.gdextension and compiled binaries
+├── project/               # Godot project, addon package, presets, example scenes, and integration tests
+│   ├── addons/ivy_sim/    # Self-contained Godot addon (plugin.cfg, ivysimulation.gdextension, LICENSE, bin/)
 │   ├── debug/             # ivy_debug_renderer.gd, ivy_settings_panel.gd
 │   ├── presets/           # Saved IvySettings .tres presets
 │   ├── tests/godot/       # test_runner.gd, sampler_tests.gd, generator_tests.gd, mesh_builder_tests.gd
@@ -142,7 +145,7 @@ ivy-sim/
 │   ├── registration/      # GDExtension entry point and ClassDB registration
 │   └── settings/          # IvyGrowthConfig and IvySettings Resource
 ├── tests/                 # Native C++ and Godot bridge test code
-│   ├── godot/             # IvySurfaceSamplerTestBridge
+│   ├── godot/             # IvySurfaceSamplerTestBridge (only compiled when build_tests=yes)
 │   └── native/            # Standalone C++ unit tests
 ├── SConstruct             # Main GDExtension build script
 └── SConstruct.tests       # Standalone native test build script
@@ -152,6 +155,9 @@ ivy-sim/
 
 ## License & Copyright
 
-Copyright (c) 2026 Max Heinze. All rights reserved.
+Copyright (C) 2026 Max Heinze
 
-This project and its source code are licensed for **non-commercial use with attribution only**. Commercial use is strictly prohibited.
+**Ivy Sim** is dual-licensed:
+
+* **Open Source (GNU GPLv3):** Free to use, modify, and redistribute under the terms of the [GNU General Public License v3.0 or later](LICENSE).
+* **Commercial License:** Available for closed-source or proprietary commercial projects that cannot comply with GPLv3 source-sharing requirements. See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) or contact Max Heinze via [GitHub](https://github.com/maximoh-mmo) to inquire.

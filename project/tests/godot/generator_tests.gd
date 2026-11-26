@@ -1,7 +1,9 @@
-# Copyright (c) 2026 Max Heinze. All rights reserved.
+# Ivy Sim - Procedural ivy generator for Godot 4
+# Copyright (C) 2026 Max Heinze
 #
-# Licensed for non-commercial use with attribution only.
-# Commercial use is strictly prohibited.
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-Commercial
+# Dual-licensed under GNU GPLv3 (see LICENSE) or a commercial license (see COMMERCIAL_LICENSE.md).
+# Distributed WITHOUT ANY WARRANTY; see LICENSE for details.
 
 extends RefCounted
 
@@ -84,6 +86,7 @@ func test_settings_properties() -> void:
 func test_reject_incomplete_setup() -> void:
 	var generator := IvyGenerator.new()
 
+	_run_test("Unset wall normal is zero", generator.get_wall_normal() == Vector3.ZERO)
 	_run_test("Reject generate without setup", not generator.generate())
 
 	var invalid_wall := generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, 0.0, 5.0)
@@ -91,6 +94,8 @@ func test_reject_incomplete_setup() -> void:
 
 	var valid_wall := generator.set_wall(Vector3.ZERO, Vector3.RIGHT, Vector3.UP, 10.0, 10.0)
 	_run_test("Accept valid wall", valid_wall)
+	_run_test("Configured wall normal matches Vector3.BACK",
+		generator.get_wall_normal().is_equal_approx(Vector3.BACK))
 
 	var settings := IvySettings.new()
 	settings.start_count = 1

@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2026 Max Heinze. All rights reserved.
+ * Ivy Sim - Procedural ivy generator for Godot 4
+ * Copyright (C) 2026 Max Heinze
  *
- * Licensed for non-commercial use with attribution only.
- * Commercial use is strictly prohibited.
+ * SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-Commercial
+ * Dual-licensed under GNU GPLv3 (see LICENSE) or a commercial license (see COMMERCIAL_LICENSE.md).
+ * Distributed WITHOUT ANY WARRANTY; see LICENSE for details.
  */
 
 #include "register_types.h"
@@ -12,7 +14,9 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
+#ifdef IVY_BUILD_TESTS
 #include "godot/ivy_surface_sampler_test_bridge.h"
+#endif
 #include "ivy_generator/ivy_generator.h"
 #include "mesh/ivy_mesh_builder.h"
 #include "mesh/ivy_mesh_settings.h"
@@ -29,7 +33,9 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 		return;
 	}
 	GDREGISTER_CLASS(ivygenerator::IvyGenerator);
+#ifdef IVY_BUILD_TESTS
 	GDREGISTER_CLASS(ivygenerator::IvySurfaceSamplerTestBridge);
+#endif
 	GDREGISTER_CLASS(ivygenerator::IvySettings);
 	GDREGISTER_CLASS(ivygenerator::IvyMeshSettings);
 	GDREGISTER_CLASS(ivygenerator::IvyMeshBuilder);

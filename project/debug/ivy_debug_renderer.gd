@@ -1,7 +1,9 @@
-# Copyright (c) 2026 Max Heinze. All rights reserved.
+# Ivy Sim - Procedural ivy generator for Godot 4
+# Copyright (C) 2026 Max Heinze
 #
-# Licensed for non-commercial use with attribution only.
-# Commercial use is strictly prohibited.
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-Commercial
+# Dual-licensed under GNU GPLv3 (see LICENSE) or a commercial license (see COMMERCIAL_LICENSE.md).
+# Distributed WITHOUT ANY WARRANTY; see LICENSE for details.
 
 class_name IvyDebugRenderer
 extends RefCounted

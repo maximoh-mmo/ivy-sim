@@ -1,0 +1,82 @@
+[configuration]
+
+entry_symbol = "ivysim"
+compatibility_minimum = "4.3"
+reloadable = true
+
+[libraries]
+; Relative paths ensure the addon can be placed inside res://addons/ivy_sim/.
+macos.single.debug = "bin/macos/libivysim.macos.template_debug.dylib"
+macos.double.debug = "bin/macos/libivysim.macos.template_debug.double.dylib"
+macos.single.release = "bin/macos/libivysim.macos.template_release.dylib"
+macos.double.release = "bin/macos/libivysim.macos.template_release.double.dylib"
+
+ios.arm64.single.debug = "bin/ios/libivysim.ios.template_debug.arm64.dylib"
+ios.arm64.double.debug = "bin/ios/libivysim.ios.template_debug.arm64.double.dylib"
+ios.arm64.single.release = "bin/ios/libivysim.ios.template_release.arm64.dylib"
+ios.arm64.double.release = "bin/ios/libivysim.ios.template_release.arm64.double.dylib"
+
+windows.x86_32.single.debug = "bin/windows/ivysim.windows.template_debug.x86_32.dll"
+windows.x86_32.double.debug = "bin/windows/ivysim.windows.template_debug.x86_32.double.dll"
+windows.x86_32.single.release = "bin/windows/ivysim.windows.template_release.x86_32.dll"
+windows.x86_32.double.release = "bin/windows/ivysim.windows.template_release.x86_32.double.dll"
+
+windows.x86_64.single.debug = "bin/windows/ivysim.windows.template_debug.x86_64.dll"
+windows.x86_64.double.debug = "bin/windows/ivysim.windows.template_debug.x86_64.double.dll"
+windows.x86_64.single.release = "bin/windows/ivysim.windows.template_release.x86_64.dll"
+windows.x86_64.double.release = "bin/windows/ivysim.windows.template_release.x86_64.double.dll"
+
+windows.arm64.single.debug = "bin/windows/ivysim.windows.template_debug.arm64.dll"
+windows.arm64.double.debug = "bin/windows/ivysim.windows.template_debug.arm64.double.dll"
+windows.arm64.single.release = "bin/windows/ivysim.windows.template_release.arm64.dll"
+windows.arm64.double.release = "bin/windows/ivysim.windows.template_release.arm64.double.dll"
+
+linux.x86_64.single.debug = "bin/linux/libivysim.linux.template_debug.x86_64.so"
+linux.x86_64.double.debug = "bin/linux/libivysim.linux.template_debug.x86_64.double.so"
+linux.x86_64.single.release = "bin/linux/libivysim.linux.template_release.x86_64.so"
+linux.x86_64.double.release = "bin/linux/libivysim.linux.template_release.x86_64.double.so"
+
+linux.x86_32.single.debug = "bin/linux/libivysim.linux.template_debug.x86_32.so"
+linux.x86_32.double.debug = "bin/linux/libivysim.linux.template_debug.x86_32.double.so"
+linux.x86_32.single.release = "bin/linux/libivysim.linux.template_release.x86_32.so"
+linux.x86_32.double.release = "bin/linux/libivysim.linux.template_release.x86_32.double.so"
+
+linux.arm64.single.debug = "bin/linux/libivysim.linux.template_debug.arm64.so"
+linux.arm64.double.debug = "bin/linux/libivysim.linux.template_debug.arm64.double.so"
+linux.arm64.single.release = "bin/linux/libivysim.linux.template_release.arm64.so"
+linux.arm64.double.release = "bin/linux/libivysim.linux.template_release.arm64.double.so"
+
+linux.arm32.single.debug = "bin/linux/libivysim.linux.template_debug.arm32.so"
+linux.arm32.double.debug = "bin/linux/libivysim.linux.template_debug.arm32.double.so"
+linux.arm32.single.release = "bin/linux/libivysim.linux.template_release.arm32.so"
+linux.arm32.double.release = "bin/linux/libivysim.linux.template_release.arm32.double.so"
+
+linux.rv64.single.debug = "bin/linux/libivysim.linux.template_debug.rv64.so"
+linux.rv64.double.debug = "bin/linux/libivysim.linux.template_debug.rv64.double.so"
+linux.rv64.single.release = "bin/linux/libivysim.linux.template_release.rv64.so"
+linux.rv64.double.release = "bin/linux/libivysim.linux.template_release.rv64.double.so"
+
+android.x86_64.single.debug = "bin/android/libivysim.android.template_debug.x86_64.so"
+android.x86_64.double.debug = "bin/android/libivysim.android.template_debug.x86_64.double.so"
+android.x86_64.single.release = "bin/android/libivysim.android.template_release.x86_64.so"
+android.x86_64.double.release = "bin/android/libivysim.android.template_release.x86_64.double.so"
+
+android.x86_32.single.debug = "bin/android/libivysim.android.template_debug.x86_32.so"
+android.x86_32.double.debug = "bin/android/libivysim.android.template_debug.x86_32.double.so"
+android.x86_32.single.release = "bin/android/libivysim.android.template_release.x86_32.so"
+android.x86_32.double.release = "bin/android/libivysim.android.template_release.x86_32.double.so"
+
+android.arm64.single.debug = "bin/android/libivysim.android.template_debug.arm64.so"
+android.arm64.double.debug = "bin/android/libivysim.android.template_debug.arm64.double.so"
+android.arm64.single.release = "bin/android/libivysim.android.template_release.arm64.so"
+android.arm64.double.release = "bin/android/libivysim.android.template_release.arm64.double.so"
+
+android.arm32.single.debug = "bin/android/libivysim.android.template_debug.arm32.so"
+android.arm32.double.debug = "bin/android/libivysim.android.template_debug.arm32.double.so"
+android.arm32.single.release = "bin/android/libivysim.android.template_release.arm32.so"
+android.arm32.double.release = "bin/android/libivysim.android.template_release.arm32.double.so"
+
+web.wasm32.single.debug = "bin/web/libivysim.web.template_debug.wasm32.nothreads.wasm"
+web.wasm32.double.debug = "bin/web/libivysim.web.template_debug.wasm32.double.nothreads.wasm"
+web.wasm32.single.release = "bin/web/libivysim.web.template_release.wasm32.nothreads.wasm"
+web.wasm32.double.release = "bin/web/libivysim.web.template_release.wasm32.double.nothreads.wasm"

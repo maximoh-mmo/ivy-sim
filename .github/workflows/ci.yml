@@ -81,6 +81,20 @@ jobs:
         run: |
           scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }}
 
+      - name: Build and Run Native Unit Tests (Windows)
+        if: ${{ matrix.target.platform == 'windows' }}
+        shell: pwsh
+        run: |
+          scons -f SConstruct.tests precision=${{ matrix.float-precision }}
+          .\bin\ivy_tests.exe
+
+      - name: Build and Run Native Unit Tests (Unix)
+        if: ${{ matrix.target.platform == 'linux' || matrix.target.platform == 'macos' }}
+        shell: bash
+        run: |
+          scons -f SConstruct.tests precision=${{ matrix.float-precision }}
+          ./bin/ivy_tests
+
       - name: Save .scons_cache
         uses: ./godot-cpp/.github/actions/godot-cache-save
         with:

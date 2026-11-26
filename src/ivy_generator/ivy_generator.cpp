@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2026 Max Heinze. All rights reserved.
+ * Ivy Sim - Procedural ivy generator for Godot 4
+ * Copyright (C) 2026 Max Heinze
  *
- * Licensed for non-commercial use with attribution only.
- * Commercial use is strictly prohibited.
+ * SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-Commercial
+ * Dual-licensed under GNU GPLv3 (see LICENSE) or a commercial license (see COMMERCIAL_LICENSE.md).
+ * Distributed WITHOUT ANY WARRANTY; see LICENSE for details.
  */
 
 /**
@@ -30,6 +32,7 @@ void IvyGenerator::_bind_methods() {
 			&IvyGenerator::set_wall,
 			DEFVAL(Vector2(1.0f, 1.0f)),
 			DEFVAL(Vector2(0.0f, 0.0f)));
+	ClassDB::bind_method(D_METHOD("get_wall_normal"), &IvyGenerator::get_wall_normal);
 
 	ClassDB::bind_method(D_METHOD("set_attraction_image", "image"), &IvyGenerator::set_attraction_image);
 
@@ -84,6 +87,10 @@ bool IvyGenerator::set_wall(
 
 	m_wall = candidate;
 	return true;
+}
+
+Vector3 IvyGenerator::get_wall_normal() const {
+	return m_wall.is_valid() ? m_wall.get_normal() : Vector3();
 }
 
 bool IvyGenerator::set_attraction_image(const Ref<Image> &image) {

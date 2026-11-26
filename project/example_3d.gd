@@ -1,7 +1,9 @@
-# Copyright (c) 2026 Max Heinze. All rights reserved.
+# Ivy Sim - Procedural ivy generator for Godot 4
+# Copyright (C) 2026 Max Heinze
 #
-# Licensed for non-commercial use with attribution only.
-# Commercial use is strictly prohibited.
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-Commercial
+# Dual-licensed under GNU GPLv3 (see LICENSE) or a commercial license (see COMMERCIAL_LICENSE.md).
+# Distributed WITHOUT ANY WARRANTY; see LICENSE for details.
 
 extends Node3D
 
@@ -288,7 +290,7 @@ func _regenerate() -> void:
 		_target_points,
 		reached_flags,
 		settings.target_acceptance_radius,
-		Vector3.BACK
+		_generator.get_wall_normal()
 	)
 
 	_rebuild_mesh()
@@ -312,11 +314,12 @@ func _rebuild_mesh() -> void:
 	var positions := _generator.get_point_positions()
 	var thicknesses := _generator.get_point_thicknesses()
 	var parents := _generator.get_point_parent_indices()
+	var wall_normal := _generator.get_wall_normal()
 
 	var mesh_start_us := Time.get_ticks_usec()
 	_mesh_builder.settings = mesh_settings
 	var stem_mesh := _mesh_builder.build_stem_mesh(
-		positions, thicknesses, parents, Vector3.BACK)
+		positions, thicknesses, parents, wall_normal)
 	if stem_mesh == null:
 		_stem_mesh_instance.mesh = null
 		_leaf_multimesh_instance.multimesh.instance_count = 0
@@ -326,7 +329,7 @@ func _rebuild_mesh() -> void:
 	_stem_mesh_instance.mesh = stem_mesh
 
 	var leaf_transforms := _mesh_builder.build_leaf_transforms(
-		positions, thicknesses, parents, Vector3.BACK)
+		positions, thicknesses, parents, wall_normal)
 	var leaf_count := leaf_transforms.size()
 	var mm := _leaf_multimesh_instance.multimesh
 	mm.instance_count = leaf_count

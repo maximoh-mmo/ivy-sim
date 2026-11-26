@@ -79,6 +79,12 @@
 				Returns the 3D target waypoints currently configured on the generator.
 			</description>
 		</method>
+		<method name="get_wall_normal" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+				Returns the unit surface normal vector of the configured wall ([code]axis_u.cross(axis_v).normalized()[/code]), or [constant Vector3.ZERO] if no valid wall has been set. Pass this directly to [method IvyMeshBuilder.build_stem_mesh] and [method IvyMeshBuilder.build_leaf_transforms].
+			</description>
+		</method>
 		<method name="is_target_reached" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="target_index" type="int" />

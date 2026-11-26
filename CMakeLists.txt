@@ -43,16 +43,25 @@ get_target_property(GODOTCPP_PLATFORM godot::cpp GODOTCPP_PLATFORM)
 
 # Now we can specify our own project which will inherit any global cmake properties or variables that have been defined.
 project(ivy-sim
-    VERSION 0.1
+    VERSION 1.0.0
     DESCRIPTION "Procedural ivy generation C++ GDExtension for Godot 4."
     HOMEPAGE_URL "https://github.com/maximoh-mmo/ivy-sim"
     LANGUAGES CXX
 )
 
+option(IVY_BUILD_TESTS "Include Godot integration test bridge" OFF)
+
 add_library(${LIBNAME} SHARED)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.h")
 list(FILTER SOURCES EXCLUDE REGEX ".*/src/gen/.*")
+
+if(IVY_BUILD_TESTS)
+    file(GLOB_RECURSE TEST_BRIDGE_SOURCES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/tests/godot/*.cpp" "${PROJECT_SOURCE_DIR}/tests/godot/*.h")
+    list(APPEND SOURCES ${TEST_BRIDGE_SOURCES})
+    target_include_directories(${LIBNAME} PRIVATE "${PROJECT_SOURCE_DIR}/tests")
+    target_compile_definitions(${LIBNAME} PRIVATE IVY_BUILD_TESTS)
+endif()
 
 target_sources(${LIBNAME} PRIVATE ${SOURCES})
 target_include_directories(${LIBNAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
@@ -81,7 +90,7 @@ set_target_properties(${LIBNAME}
     OUTPUT_NAME "${LIBNAME}${GODOTCPP_SUFFIX}"
 )
 
-set(GODOT_PROJECT_BINARY_DIR "${PROJECT_SOURCE_DIR}/${GODOT_PROJECT_DIR}/bin/${GODOTCPP_PLATFORM}")
+set(GODOT_PROJECT_BINARY_DIR "${PROJECT_SOURCE_DIR}/${GODOT_PROJECT_DIR}/addons/ivy_sim/bin/${GODOTCPP_PLATFORM}")
 
 add_custom_command(TARGET ${LIBNAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${LIBNAME}>" "${GODOT_PROJECT_BINARY_DIR}/$<TARGET_FILE_NAME:${LIBNAME}>"

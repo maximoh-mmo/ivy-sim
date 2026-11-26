@@ -37,9 +37,18 @@ Run the following command to download godot-cpp:
 
 env = SConscript("godot-cpp/SConstruct", {"api_version": 4.3, "env": env, "customs": customs})
 
-env.Append(CPPPATH=["src/", "tests/"])
+env.Append(CPPPATH=["src/"])
 sources = Glob("src/*.cpp") + [f for f in Glob("src/*/*.cpp") if "src/gen" not in str(f).replace("\\", "/")]
-sources += Glob("tests/godot/*.cpp")
+
+build_tests_arg = ARGUMENTS.get("build_tests")
+if build_tests_arg is not None:
+    build_tests = str(build_tests_arg).lower() in ("1", "true", "yes", "on")
+else:
+    build_tests = env["target"] in ["editor", "template_debug"]
+
+if build_tests:
+    env.Append(CPPPATH=["tests/"], CPPDEFINES=["IVY_BUILD_TESTS"])
+    sources += Glob("tests/godot/*.cpp")
 
 if env["target"] in ["editor", "template_debug"]:
     try:
@@ -59,7 +68,7 @@ library = env.SharedLibrary(
     source=sources,
 )
 
-copy = env.Install("{}/bin/{}/".format(projectdir, env["platform"]), library)
+copy = env.Install("{}/addons/ivy_sim/bin/{}/".format(projectdir, env["platform"]), library)
 
 default_args = [library, copy]
 Default(*default_args)
