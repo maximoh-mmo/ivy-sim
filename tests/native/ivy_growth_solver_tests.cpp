@@ -817,6 +817,7 @@ bool IvyGrowthSolverTests::test_step_branching_waits_until_next_iteration() {
 					"Side branch should deflect laterally off x = 5.0")) {
 		return false;
 	}
+	const Vector3 branch_1_pos = branch_1->position;
 
 	// Step 2: Disable further branching; both main tip (1) and branch tip (2) advance once.
 	config.branch_probability = 0.0f;
@@ -828,12 +829,15 @@ bool IvyGrowthSolverTests::test_step_branching_waits_until_next_iteration() {
 
 	const IvyPoint *main_2 = solver.get_graph().get_point(3);
 	const IvyPoint *branch_2 = solver.get_graph().get_point(4);
-	const float branch_dx_1 = branch_1->position.x - 5.0f;
-	const float branch_dx_2 = branch_2->position.x - branch_1->position.x;
+	if (!expect(main_2 != nullptr && branch_2 != nullptr, "Step 2 tips should exist")) {
+		return false;
+	}
 
-	return expect(main_2 != nullptr && branch_2 != nullptr, "Step 2 tips should exist") &&
-			expect(main_2->parent_index == 1 && branch_2->parent_index == 2,
-					"Step 2 should advance tips 1 and 2 in sequential order") &&
+	const float branch_dx_1 = static_cast<float>(branch_1_pos.x) - 5.0f;
+	const float branch_dx_2 = static_cast<float>(branch_2->position.x - branch_1_pos.x);
+
+	return expect(main_2->parent_index == 1 && branch_2->parent_index == 2,
+				   "Step 2 should advance tips 1 and 2 in sequential order") &&
 			expect((branch_dx_1 * branch_dx_2) > 0.0f,
 					"Branch tip should preserve lateral heading on its first step");
 }
@@ -1597,12 +1601,13 @@ bool IvyGrowthSolverTests::test_step_top_edge_sliding_and_healthy_boundary() {
 				"First top-band step should curve laterally while staying within wall height")) {
 		return false;
 	}
+	const Vector3 slide_1_pos = slide_1->position;
 
 	// Step 2: Second top-band step continues laterally inside the wall.
 	solver.step();
 	const IvyPoint *slide_2 = solver.get_graph().get_point(4);
 	if (!expect(slide_2 != nullptr &&
-						std::abs(slide_2->position.x - slide_1->position.x) > 0.05f &&
+						std::abs(slide_2->position.x - slide_1_pos.x) > 0.05f &&
 						slide_2->position.y <= wall.height,
 				"Second top-band step should continue curving laterally within wall height")) {
 		return false;
