@@ -7,6 +7,16 @@ A deterministic procedural ivy generator implemented in native C++ as a Godot 4 
 
 ---
 
+## Previews
+
+![3D tapered ivy stems and MultiMesh foliage on a brick wall](screenshots/preview_3d_hero.png)
+
+| 3D Mesh & Leaves UI + Target Waypoints | Pure 2D Layer 1 Example |
+| :---: | :---: |
+| ![3D example with live Mesh and Leaves settings panel and target waypoints](screenshots/preview_3d_targets_ui.png) | ![Pure 2D Node2D canvas example using Layer 1 IvyGenerator](screenshots/preview_2d.png) |
+
+---
+
 ## Overview
 
 **Ivy Sim** (`ivysim`) separates procedural simulation from rendering and mesh generation:
@@ -127,12 +137,13 @@ ivy-sim/
 ├── doc_classes/           # GDExtension XML docs (IvyGenerator, IvySettings, IvyMeshBuilder, IvyMeshSettings)
 ├── godot-cpp/             # Godot C++ bindings submodule
 ├── project/               # Godot project, addon package, presets, example scenes, and integration tests
-│   ├── addons/ivy_sim/    # Self-contained Godot addon (plugin.cfg, ivysimulation.gdextension, LICENSE, bin/)
+│   ├── addons/ivy_sim/    # Self-contained Godot addon (plugin.cfg, icon.png, ivysimulation.gdextension, LICENSE, bin/)
 │   ├── debug/             # ivy_debug_renderer.gd, ivy_settings_panel.gd
 │   ├── presets/           # Saved IvySettings .tres presets
 │   ├── tests/godot/       # test_runner.gd, sampler_tests.gd, generator_tests.gd, mesh_builder_tests.gd
 │   ├── example_2d.gd/.tscn# Pure 2D Layer 1 example
 │   └── example_3d.gd/.tscn# Full 3D Layer 1 + Layer 2 stem & leaf example (default main scene)
+├── screenshots/           # Preview screenshots for README and Godot Asset Library
 ├── src/                   # C++ extension source code
 │   ├── environment/       # IvyWall, IvyPixelSampler, IvySurfaceSampler
 │   ├── growth/            # IvyPoint, IvyGrowthGraph, IvyGrowthSolver
