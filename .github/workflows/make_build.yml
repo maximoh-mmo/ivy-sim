@@ -15,13 +15,16 @@ jobs:
       - name: Stage Addon Metadata & License Files
         shell: bash
         run: |
-          mkdir -p staging/addons/ivy_sim
+          mkdir -p staging/ivy-sim/addons/ivy_sim
           cp project/addons/ivy_sim/ivysimulation.gdextension \
+             project/addons/ivy_sim/ivysimulation.gdextension.uid \
              project/addons/ivy_sim/plugin.cfg \
              project/addons/ivy_sim/plugin.gd \
+             project/addons/ivy_sim/plugin.gd.uid \
+             project/addons/ivy_sim/icon.png \
              project/addons/ivy_sim/LICENSE \
              project/addons/ivy_sim/COMMERCIAL_LICENSE.md \
-             staging/addons/ivy_sim/
+             staging/ivy-sim/addons/ivy_sim/
 
       - name: Upload Addon Files
         uses: actions/upload-artifact@v7
@@ -99,8 +102,8 @@ jobs:
       - name: Stage Addon Binaries
         shell: bash
         run: |
-          mkdir -p staging/addons/ivy_sim/bin
-          cp -r project/addons/ivy_sim/bin/* staging/addons/ivy_sim/bin/
+          mkdir -p staging/ivy-sim/addons/ivy_sim/bin
+          cp -r project/addons/ivy_sim/bin/* staging/ivy-sim/addons/ivy_sim/bin/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
