@@ -86,6 +86,7 @@ jobs:
         shell: pwsh
         run: |
           scons -f SConstruct.tests precision=${{ matrix.float-precision }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\bin\ivy_tests.exe
 
       - name: Build and Run Native Unit Tests (Unix)

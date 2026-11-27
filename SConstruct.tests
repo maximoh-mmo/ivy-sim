@@ -9,10 +9,18 @@
 import os
 import glob
 
-env = Environment(tools=["default"])
+godot_cpp_bin = "godot-cpp/bin"
+msvc_libs = glob.glob(os.path.join(godot_cpp_bin, "*.lib")) if os.path.isdir(godot_cpp_bin) else []
+unix_libs = glob.glob(os.path.join(godot_cpp_bin, "libgodot-cpp*.a")) if os.path.isdir(godot_cpp_bin) else []
 
-if env["PLATFORM"] == "win32":
-    env.Append(CCFLAGS=["/EHsc", "/std:c++17", "/Zc:__cplusplus"])
+if os.name == "nt" and msvc_libs:
+    env = Environment(tools=["msvc", "mslink", "mslib"], TARGET_ARCH="amd64")
+else:
+    env = Environment(tools=["default"])
+
+is_msvc = "msvc" in env.get("TOOLS", []) or "cl" in os.path.basename(env.subst("$CXX")).lower()
+if is_msvc:
+    env.Append(CCFLAGS=["/EHsc", "/std:c++17", "/Zc:__cplusplus", "/MT"])
 else:
     env.Append(CCFLAGS=["-std=c++17"])
 
@@ -26,20 +34,15 @@ env.Append(CPPPATH=[
     "godot-cpp/gen/include",
 ])
 
-godot_cpp_bin = "godot-cpp/bin"
 if os.path.isdir(godot_cpp_bin):
     env.Append(LIBPATH=[godot_cpp_bin])
-    if env["PLATFORM"] == "win32":
-        libs = glob.glob(os.path.join(godot_cpp_bin, "*.lib"))
-        if libs:
-            libname = os.path.splitext(os.path.basename(libs[0]))[0]
-            env.Append(LIBS=[libname])
-    else:
-        libs = glob.glob(os.path.join(godot_cpp_bin, "libgodot-cpp*.a"))
-        if libs:
-            libfile = os.path.basename(libs[0])
-            libname = libfile[3:-2] if libfile.startswith("lib") and libfile.endswith(".a") else os.path.splitext(libfile)[0]
-            env.Append(LIBS=[libname])
+    if is_msvc and msvc_libs:
+        libname = os.path.splitext(os.path.basename(msvc_libs[0]))[0]
+        env.Append(LIBS=[libname])
+    elif unix_libs:
+        libfile = os.path.basename(unix_libs[0])
+        libname = libfile[3:-2] if libfile.startswith("lib") and libfile.endswith(".a") else os.path.splitext(libfile)[0]
+        env.Append(LIBS=[libname])
 
 sources = [
     "tests/native/test_main.cpp",
@@ -56,7 +59,7 @@ sources = [
     "src/environment/ivy_surface_sampler.cpp",
     "src/mesh/ivy_mesh_generator.cpp",
     "src/growth/ivy_growth_solver.cpp",
-    "tests/native/ivy_mesh_generator_tests.cpp"
+    "tests/native/ivy_mesh_generator_tests.cpp",
 ]
 
 test_program = env.Program(
